@@ -1,47 +1,53 @@
-// “Adaptateur” CSV → Go (pour les données)
-
 package data
 
 import (
 	"encoding/csv"
 	"fmt"
-	"os" // pour ouvrir un fichier
+	"io"
+	"os"
+	"strings"
 )
 
-func LoadFirstColumn(path string) ([]string, error) { //Entrée : path = chemin du fichier CSV; Sortie : []string = liste de valeurs (la 1ère colonne) et error = erreur si quelque chose se passe mal
-	// Ouvre le fichier CSV en lecture
+// LoadFirstColumn lit un CSV depuis un fichier et renvoie la 1ère colonne.
+// Ici on saute l'en-tête (ligne 1) par défaut.
+func LoadFirstColumn(path string) ([]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err // Si le fichier n'existe pas ou n'est pas accessible
+		return nil, err
 	}
-	defer f.Close() // Ferme le fichier à la fin de la fonction, quoi qu'il arrive
+	defer f.Close()
 
-	// Lit tout le contenu du CSV en mémoire :
-	// records = tableau de lignes, chaque ligne = tableau de colonnes ([][]string)
-	records, err := csv.NewReader(f).ReadAll()
+	return LoadFirstColumnFromReader(f, true)
+}
+
+// LoadFirstColumnFromReader lit un CSV depuis un flux (réseau, mémoire, fichier)
+// et renvoie la 1ère colonne comme []string.
+// skipHeader=true => ignore la première ligne (souvent un header).
+func LoadFirstColumnFromReader(r io.Reader, skipHeader bool) ([]string, error) {
+	records, err := csv.NewReader(r).ReadAll()
 	if err != nil {
-		return nil, err // CSV invalide, problème d'encodage, etc.
+		return nil, err
 	}
-
-	// Si aucune ligne n'est présente, le CSV est vide (même pas d'en-tête)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("empty csv")
 	}
 
-	// Slice de sortie : une liste de strings (valeurs de la première colonne)
-	var out []string
-
-	// Parcourt toutes les lignes de données (on saute la ligne 0 : l'en-tête)
-	for _, row := range records[1:] {
-		// Ignore les lignes vides ou les lignes sans première colonne exploitable
-		if len(row) == 0 || row[0] == "" {
-			continue
-		}
-
-		// Ajoute la valeur de la première colonne à la sortie
-		out = append(out, row[0])
+	start := 0
+	if skipHeader && len(records) > 0 {
+		start = 1
 	}
 
-	// Renvoie la liste des valeurs (et nil pour dire "pas d'erreur")
+	out := make([]string, 0, len(records)-start)
+	for i := start; i < len(records); i++ {
+		row := records[i]
+		if len(row) == 0 {
+			continue
+		}
+		val := strings.TrimSpace(row[0])
+		if val == "" {
+			continue
+		}
+		out = append(out, val)
+	}
 	return out, nil
 }
