@@ -1,10 +1,12 @@
 package matcher
 
 import (
+	"fmt"
 	"runtime" // Pour connaître le nombre de CPU (pour choisir un nb de workers)
 	"sort"
 	"sync" // WaitGroup pour synchroniser les goroutines
 
+	"levenshtein/internal/data"
 	"levenshtein/internal/levenshtein" // Algo de distance de Levenshtein
 )
 
@@ -15,35 +17,51 @@ type Match struct {
 	Distance int
 }
 
-// subset limite la liste à "limit" éléments si limit est > 0
-// - limit <= 0 : pas de limite
-// - limit >= len(names) : pas de limite (on garde tout)
-func subset(names []string, limit int) []string {
-	if limit <= 0 || limit >= len(names) {
-		return names
+func abs(x int) int {
+	if x < 0 {
+		return -x
 	}
-	return names[:limit]
+	return x
+}
+
+func subsetPersons(persons []data.Person, limit int) []data.Person {
+	if limit <= 0 || limit >= len(persons) {
+		return persons
+	}
+	return persons[:limit]
 }
 
 // FindMatchesSequential compare tous les couples (i, j) de manière séquentielle
 // - threshold : distance max pour considérer une paire comme match
 // - limit     : limite le nombre de noms considérés (utile pour tester rapidement)
-func FindMatchesSequential(names []string, threshold, limit int) []Match {
+func FindMatchesSequential(persons []data.Person, threshold, limit int, useDate bool) []Match {
 	//on limite le volume de données
-	names = subset(names, limit)
+	persons = subsetPersons(persons, limit)
 
 	// Slice des résultats (matches trouvés)
 	matches := make([]Match, 0)
 
 	// Compare chaque nom avec tous ceux qui le suivent (évite les doublons)
-	for i := 0; i < len(names); i++ {
-		for j := i + 1; j < len(names); j++ {
+	for i := 0; i < len(persons); i++ {
+		for j := i + 1; j < len(persons); j++ {
+
+			// Optimisation : si la différence de longueur dépasse le seuil, on ne calcule pas
+			if abs(len(persons[i].Name)-len(persons[j].Name)) > threshold {
+				continue
+			}
+
 			// Calcule la distance entre les deux chaînes
-			d := levenshtein.Distance(names[i], names[j])
+			d := levenshtein.Distance(persons[i].Name, persons[j].Name)
 
 			// Si la distance est suffisamment faible, on garde la paire
 			if d <= threshold {
-				matches = append(matches, Match{A: names[i], B: names[j], Distance: d})
+				if !useDate || persons[i].Date == persons[j].Date {
+					matches = append(matches, Match{
+						A:        persons[i].Name,
+						B:        persons[j].Name,
+						Distance: d,
+					})
+				}
 			}
 		}
 	}
@@ -55,9 +73,9 @@ func FindMatchesSequential(names []string, threshold, limit int) []Match {
 
 // FindMatchesConcurrent fait la même chose, mais en parallèle
 // - workers : nb de goroutines de calcul ; si <= 0, on prend runtime.NumCPU()
-func FindMatchesConcurrent(names []string, threshold, limit, workers int) []Match {
+func FindMatchesConcurrent(persons []data.Person, threshold, limit, workers int, useDate bool) []Match {
 	// Optionnel : on limite le volume de données
-	names = subset(names, limit)
+	persons = subsetPersons(persons, limit)
 	// Si aucun nombre de workers n'est fourni, on utilise le nb de coeurs CPU
 	if workers <= 0 {
 		workers = runtime.NumCPU()
@@ -68,9 +86,8 @@ func FindMatchesConcurrent(names []string, threshold, limit, workers int) []Matc
 
 	// jobs : file de travail (paires à comparer)
 	// results : file des matches (paires qui passent le threshold)
-	// Buffers 1024 pour réduire les blocages entre producteurs/consommateurs
-	jobs := make(chan job, 1024)
-	results := make(chan Match, 1024)
+	jobs := make(chan job, 10000)
+	results := make(chan Match, 10000)
 
 	// WaitGroup pour attendre que tous les workers aient fini
 	var wg sync.WaitGroup
@@ -81,13 +98,20 @@ func FindMatchesConcurrent(names []string, threshold, limit, workers int) []Matc
 		go func() {
 			defer wg.Done()
 			for jb := range jobs {
-				a := names[jb.i]
-				b := names[jb.j]
-				// Calcul de distance
-				d := levenshtein.Distance(a, b)
+				a := persons[jb.i]
+				b := persons[jb.j]
+
+				// Optimisation : si la différence de longueur dépasse le seuil, on ne calcule pas
+				if abs(len(a.Name)-len(b.Name)) > threshold {
+					continue
+				}
+
+				d := levenshtein.Distance(a.Name, b.Name)
 				// Si match, on l’envoie dans results
 				if d <= threshold {
-					results <- Match{A: a, B: b, Distance: d}
+					if !useDate || a.Date == b.Date {
+						results <- Match{A: a.Name, B: b.Name, Distance: d}
+					}
 				}
 			}
 		}()
@@ -95,8 +119,11 @@ func FindMatchesConcurrent(names []string, threshold, limit, workers int) []Matc
 
 	// Producteur de jobs : génère toutes les paires (i, j), puis ferme jobs
 	go func() {
-		for i := 0; i < len(names); i++ {
-			for j := i + 1; j < len(names); j++ {
+		for i := 0; i < len(persons); i++ {
+			if i%1000 == 0 {
+				fmt.Println("progress:", i, "/", len(persons))
+			}
+			for j := i + 1; j < len(persons); j++ {
 				jobs <- job{i: i, j: j}
 			}
 		}

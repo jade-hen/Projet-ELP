@@ -8,46 +8,48 @@ import (
 	"strings"
 )
 
-// LoadFirstColumn lit un CSV depuis un fichier et renvoie la 1ère colonne.
+// Person représente une ligne du CSV avec nom et date
+type Person struct {
+	Name string
+	Date string
+}
+
+// Charge le CSV et renvoie []Person (nom + date)
 // Ici on saute l'en-tête (ligne 1) par défaut.
-func LoadFirstColumn(path string) ([]string, error) {
+func LoadNamesAndDates(path string) ([]Person, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	return LoadFirstColumnFromReader(f, true)
+	return LoadNamesAndDatesFromReader(f)
 }
 
 // LoadFirstColumnFromReader lit un CSV depuis un flux (réseau, mémoire, fichier)
 // et renvoie la 1ère colonne comme []string.
 // skipHeader=true => ignore la première ligne (souvent un header).
-func LoadFirstColumnFromReader(r io.Reader, skipHeader bool) ([]string, error) {
+func LoadNamesAndDatesFromReader(r io.Reader) ([]Person, error) {
 	records, err := csv.NewReader(r).ReadAll()
 	if err != nil {
 		return nil, err
 	}
-	if len(records) == 0 {
-		return nil, fmt.Errorf("empty csv")
+	if len(records) <= 1 {
+		return nil, fmt.Errorf("CSV vide ou sans données")
 	}
 
-	start := 0
-	if skipHeader && len(records) > 0 {
-		start = 1
-	}
-
-	out := make([]string, 0, len(records)-start)
-	for i := start; i < len(records); i++ {
+	out := make([]Person, 0, len(records)-1)
+	for i := 1; i < len(records); i++ {
 		row := records[i]
-		if len(row) == 0 {
+		if len(row) < 3 {
 			continue
 		}
-		val := strings.TrimSpace(row[0])
-		if val == "" {
+		name := strings.TrimSpace(row[0])
+		date := strings.TrimSpace(row[2])
+		if name == "" || date == "" {
 			continue
 		}
-		out = append(out, val)
+		out = append(out, Person{Name: name, Date: date})
 	}
 	return out, nil
 }

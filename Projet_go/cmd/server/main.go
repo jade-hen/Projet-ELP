@@ -20,6 +20,7 @@ type request struct {
 	threshold int
 	limit     int
 	csvBytes  int
+	useDate   bool
 }
 
 func main() {
@@ -33,7 +34,6 @@ func main() {
 	defer ln.Close()
 
 	fmt.Println("Serveur TCP en écoute sur", *addr)
-	fmt.Println("Protocole: le client envoie une ligne: threshold=2 limit=500 csvbytes=12345\\n puis 12345 octets de CSV.")
 
 	for {
 		conn, err := ln.Accept()
@@ -53,11 +53,12 @@ func handleConn(conn net.Conn) {
 	r := bufio.NewReader(conn)
 
 	// 1) Lire l'en-tête (une ligne)
-	header, err := r.ReadString('\n')
+	headerBytes, err := r.ReadBytes('\n')
 	if err != nil {
 		fmt.Fprintln(conn, "ERR header read:", err)
 		return
 	}
+	header := string(headerBytes)
 
 	req := parseHeader(strings.TrimSpace(header))
 	if req.csvBytes <= 0 {
@@ -80,27 +81,27 @@ func handleConn(conn net.Conn) {
 	}
 
 	// 3) Parser CSV -> []string
-	names, err := data.LoadFirstColumnFromReader(bytes.NewReader(raw), true /*skipHeader*/)
+	persons, err := data.LoadNamesAndDatesFromReader(bytes.NewReader(raw))
 	if err != nil {
 		fmt.Fprintln(conn, "ERR csv parse:", err)
 		return
 	}
-	if len(names) < 2 {
-		fmt.Fprintln(conn, "ERR not enough names (need >=2)")
+	if len(persons) < 2 {
+		fmt.Fprintln(conn, "ERR not enough persons (need >=2)")
 		return
 	}
-
+	fmt.Println(bool(req.useDate))
 	// 4) Matching concurrent (workers = NumCPU)
 	workers := runtime.NumCPU()
 	start := time.Now()
-	matches := matcher.FindMatchesConcurrent(names, req.threshold, req.limit, workers)
+	matches := matcher.FindMatchesConcurrent(persons, req.threshold, req.limit, workers, bool(req.useDate))
 	elapsed := time.Since(start)
 
 	// 5) Réponse
-	fmt.Fprintf(conn, "OK names=%d threshold=%d limit=%d workers=%d\n", len(names), req.threshold, req.limit, workers)
+	fmt.Fprintf(conn, "OK persons=%d threshold=%d limit=%d workers=%d\n", len(persons), req.threshold, req.limit, workers)
 	fmt.Fprintf(conn, "matches=%d elapsed_ms=%d\n", len(matches), elapsed.Milliseconds())
 
-	maxShow := 20
+	maxShow := 20 //affichage de 20 max
 	if maxShow > len(matches) {
 		maxShow = len(matches)
 	}
@@ -108,14 +109,15 @@ func handleConn(conn net.Conn) {
 		m := matches[i]
 		fmt.Fprintf(conn, "d=%d | %s <-> %s\n", m.Distance, m.A, m.B)
 	}
+	conn.Close()
 }
 
 func parseHeader(line string) request {
-	// Valeurs par défaut “PoC”
 	out := request{
 		threshold: 2,
 		limit:     500,
 		csvBytes:  0,
+		useDate:   false,
 	}
 
 	for _, p := range strings.Fields(line) {
@@ -138,6 +140,10 @@ func parseHeader(line string) request {
 		case "csvbytes":
 			if x, err := strconv.Atoi(val); err == nil {
 				out.csvBytes = x
+			}
+		case "usedate":
+			if x, err := strconv.Atoi(val); err == nil && x != 0 {
+				out.useDate = true
 			}
 		}
 	}
