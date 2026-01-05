@@ -1,7 +1,6 @@
 package matcher
 
 import (
-	"fmt"
 	"runtime" // Pour connaître le nombre de CPU (pour choisir un nb de workers)
 	"sort"
 	"sync" // WaitGroup pour synchroniser les goroutines
@@ -120,9 +119,9 @@ func FindMatchesConcurrent(persons []data.Person, threshold, limit, workers int,
 	// Producteur de jobs : génère toutes les paires (i, j), puis ferme jobs
 	go func() {
 		for i := 0; i < len(persons); i++ {
-			if i%1000 == 0 {
+			/*if i%1000 == 0 {
 				fmt.Println("progress:", i, "/", len(persons))
-			}
+			}*/ //debug
 			for j := i + 1; j < len(persons); j++ {
 				jobs <- job{i: i, j: j}
 			}

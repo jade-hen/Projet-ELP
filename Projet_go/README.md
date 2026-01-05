@@ -113,18 +113,19 @@ Le nombre de workers est configurable ; s’il n’est pas fourni, il est automa
 Limitation du volume : un paramètre limit permet de restreindre le nombre de noms traités, afin de contrôler la complexité O(n²) inhérente au problème. 
 
 
-## Programme de validation et benchmark (sanity)
+## Programme de validation et tests (sanity)
 
 Le programme sanity permet de :
 - vérifier le bon fonctionnement de l’algorithme de Levenshtein sur des données réelles
 - comparer les temps d’exécution des versions séquentielle et concurrente
+- comparer le nombre de matches suivant si on prend uniquement les noms en compte ou bien si l'on regarde également les dates
 
 Son fonctionnement est le suivant :
 - Chargement des noms depuis un fichier CSV
 - Calcul d’un exemple de distance entre deux noms
 - Exécution du matching séquentiel
 - Exécution du matching concurrent
-- Affichage des temps d’exécution
+- Affichage des temps d’exécution et du nombre de matches
 
 Un paramètre limit est utilisé pour éviter une explosion du temps de calcul lors des tests.
 
@@ -160,21 +161,72 @@ Le client TCP permet de tester facilement le serveur :
 Il constitue un outil simple pour valider le bon fonctionnement du serveur et mesurer les performances côté serveur.
 
 ## Évaluation des performances
+### performances temporelles
 
 Les performances sont évaluées en comparant :
 - une implémentation séquentielle
 - une implémentation concurrente
+
+Limit correspond à la taille du tableau de noms; Threshold correspond à la distance maximale entre deux noms; sequential et concurrent correspondent aux temps d'exécution des fonctions 
+
+| limit | threshold | sequential (ms) | concurrent (ms) |
+|-------|-----------|----------------|----------------|
+| 200   | 2         | 31             | 14             |
+| 200   | 3         | 41             | 17             |
+| 500   | 2         | 198            | 99             |
+| 500   | 3         | 269            | 122            |
+| 1000  | 2         | 809            | 351            |
+| 1000  | 3         | 1090           | 447            |
+| 5000  | 2         | 25506          | 7728           |
+| 5000  | 3         | 59705          | 8907           |
+
 
 Les résultats montrent que :
 - pour de petits volumes, l’approche séquentielle est suffisante
 - lorsque le volume augmente, la version concurrente permet de réduire le temps d’exécution en exploitant plusieurs cœurs CPU
 - le coût intrinsèque du problème (O(n²)) reste le facteur limitant principal
 
+### impact du paramètre threshold
+Nous comparons ici le nombre de matches pour différents thresholds, avec une limit de 5000 (pour ne pas que le programme mette trop de temps à s'exécuter) et useDate à faux (on ne compare pas en plus les dates)
+
+| threshold | nbMatches |
+| --------- | --------- |
+| 1         | 1         |
+| 2         | 5         |
+| 3         | 20        |
+| 4         | 47        |
+| 5         | 107       |
+
+Les résultats montrent l'impact du paramètre threshold sur le nombre de matches trouvés (le nombre est multiplié par 5 au maximum, et au moins par 2 quand on augmente le threshold de 1). Le choix du threshold est donc crucial pour trouver les bons matches. 
+
+### impact de l'utilisation des dates
+Nous comparons ici :
+- une implémentation en comparant uniquement les noms
+- une implémentation qui compare également les dates
+
+Nous utilisons par défaut un threshold de 2; useDate est à true si les dates ont été comparées, à false sinon. 
+
+| limit  | useDate | nbMatches |
+|--------|---------|-----------|
+| 1000   | false   | 1         |
+| 1000   | true    | 1         |
+| 5000   | false   | 5         |
+| 5000   | true    | 1         |
+| 10000  | false   | 50        |
+| 10000  | true    | 8         |
+| 13395  | false   | 126       |
+| 13395  | true    | 15        |
+
+Les résultats montrent qu'il existe de nombreuses lignes dont les noms matchent, mais pas les dates. Ces lignes en moins peuvent correspondre à des "faux positifs" : les personnes sont simplement des quasi homonymes.
+Cependant, il pourrait aussi y avoir des erreurs sur les dates (non pris en compte ici). 
+
 ## Limites du projet
 
 - La complexité quadratique limite la scalabilité sur de très grands jeux de données
 - Le CSV est chargé entièrement en mémoire
 - La distance de Levenshtein est calculée intégralement pour chaque paire, sans optimisation par seuil
+- Il faut bien choisir les valeurs des paramètres (threshold en particulier)
+- Nous avons regardé des matches parfaits pour les dates, mais il pourrait très bien y avoir des erreurs à la fois dans les noms et dans les dates, ou uniquement dans les dates. Celles-ci ne sont pas prises en compte par notre algorithme
 
 Ces limites sont acceptables dans le cadre pédagogique du projet.
 
@@ -199,75 +251,3 @@ Ce projet est réalisé en groupe par :
 ## Contexte académique
 
 Ce projet est réalisé dans un cadre pédagogique afin de mettre en pratique les concepts de concurrence et de programmation réseau en Go à travers une application concrète, mesurable et ancrée dans un problème réel de qualité des données.
-
-
-FIN
-
-
-
-
-
-
-
-
-
-
-
-
-## Concurrence
-
-Le projet met en œuvre deux niveaux de concurrence :
-
-1. **Concurrence de calcul (CPU-bound)**  
-   Les comparaisons de noms sont réparties entre plusieurs goroutines à l’aide d’un worker pool afin d’exploiter les cœurs CPU disponibles.
-
-2. **Concurrence réseau (I/O-bound)**  
-   Chaque client TCP est géré dans une goroutine dédiée, ce qui permet au serveur de rester réactif même en présence de plusieurs connexions simultanées.
-
----
-
-## Protocole TCP (simplifié)
-
-Les clients se connectent au serveur via TCP et envoient une requête contenant :
-- une liste de noms à comparer
-- un seuil de distance pour le matching
-
-Le serveur retourne les correspondances trouvées ainsi que la distance associée.
-
----
-
-## Évaluation des performances
-
-Le projet compare les performances :
-- d’une implémentation séquentielle du matching
-- d’une implémentation concurrente
-
-Les temps d’exécution sont mesurés afin d’analyser les gains apportés par la concurrence et d’en discuter les limites.
-
----
-
-## Technologies utilisées
-
-- Go
-- Goroutines
-- Channels
-- sync.WaitGroup
-- Sockets TCP
-
-
-
-## Équipe
-
-Ce projet est réalisé en groupe par :
-
-- **Anna Grataloup**
-- **Emma Payrard**
-- **Jade Henninot**
-
-
-
-## Contexte académique
-
-Ce projet est réalisé dans un cadre pédagogique afin de mettre en pratique les concepts de concurrence et de programmation réseau en Go à travers une application concrète, mesurable et ancrée dans un problème réel de qualité des données.
-
-

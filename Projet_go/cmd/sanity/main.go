@@ -33,31 +33,57 @@ func main() {
 		fmt.Println("Exemple distance:", persons[0], "vs", persons[1], "=>",
 			levenshtein.Distance(persons[0].Name, persons[1].Name))
 	}
+	fmt.Println()
 
-	limit := 13395  //limiter le volume de données
-	useDate := true // ou false si on veut ignorer les dates
-	threshold := 2  // choisir le nombre de différences entre deux noms
+	// ---------------- Table 1 : nb de matches pour limit=5000 et threshold 1..5 ----------------
+	limit := 5000
+	thresholds := []int{1, 2, 3, 4, 5}
 
-	//Comparaison des résulats en utilisant ou non les dates
-	fmt.Println("=== Matches sans utiliser les dates ===")
-	matchesNoDate := matcher.FindMatchesConcurrent(persons, threshold, limit, 0, false)
-	fmt.Println("Nb de matches (sans dates) :", len(matchesNoDate))
+	fmt.Println("=== Performances : nombre de matches pour limit=5000 et threshold 1..5 ===")
+	fmt.Println("threshold\tnbMatches")
+	for _, th := range thresholds {
+		matches := matcher.FindMatchesConcurrent(persons, th, limit, 0, false)
+		fmt.Printf("%d\t\t%d\n", th, len(matches))
+	}
+	fmt.Println()
 
-	fmt.Println("=== Matches en utilisant les dates ===")
-	matchesWithDate := matcher.FindMatchesConcurrent(persons, threshold, limit, 0, true)
-	fmt.Println("Nb de matches (avec dates) :", len(matchesWithDate))
+	// ---------------- Table 2 : nb de matches pour plusieurs limits, avec et sans date ----------------
+	limits := []int{200, 500, 1000, 5000, 13395}
+	threshold := 2
 
-	//Comparaison des résultats en séquentiel ou concurrence
-	startSeq := time.Now()
-	//Parcours pour trouver les matches en séquentiel
-	matcher.FindMatchesSequential(persons, threshold, limit, useDate)
-	elapsedSeq := time.Since(startSeq)
+	fmt.Println("=== Performances : nombre de matches selon limit et utilisation des dates ===")
+	fmt.Println("limit\tuseDate\tnbMatches")
+	for _, lim := range limits {
+		// Sans date
+		matchesNoDate := matcher.FindMatchesConcurrent(persons, threshold, lim, 0, false)
+		fmt.Printf("%d\t%v\t%d\n", lim, false, len(matchesNoDate))
 
-	startConc := time.Now()
-	//Parcours pour trouver les matches en concurrent
-	matcher.FindMatchesConcurrent(persons, threshold, limit, 0, useDate)
-	elapsedConc := time.Since(startConc)
+		// Avec date
+		matchesWithDate := matcher.FindMatchesConcurrent(persons, threshold, lim, 0, true)
+		fmt.Printf("%d\t%v\t%d\n", lim, true, len(matchesWithDate))
+	}
+	fmt.Println()
 
-	fmt.Println("Temps d'exécution en séquentiel :", elapsedSeq)
-	fmt.Println("Temps d'exécution en concurrence :", elapsedConc)
+	// ---------------- Table 3 : comparaison des performances temporelles ----------------
+	fmt.Println("=== Comparaison performance temporelle (ms) ===")
+	fmt.Println("limit\tthreshold\tsequential(ms)\tconcurrent(ms)")
+	for _, lim := range limits {
+		for _, th := range thresholds {
+			// Séquentiel
+			startSeq := time.Now()
+			_ = matcher.FindMatchesSequential(persons, th, lim, true)
+			elapsedSeq := time.Since(startSeq)
+
+			// Concurrent
+			startConc := time.Now()
+			_ = matcher.FindMatchesConcurrent(persons, th, lim, 0, true)
+			elapsedConc := time.Since(startConc)
+
+			fmt.Printf("%d\t%d\t%d\t%d\n",
+				lim, th,
+				elapsedSeq.Milliseconds(),
+				elapsedConc.Milliseconds(),
+			)
+		}
+	}
 }
