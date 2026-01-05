@@ -2,11 +2,15 @@
 
 ## Description
 
-Ce projet est une preuve de concept (PoC) développée en Go visant à démontrer l’utilisation de la concurrence (goroutines, channels, wait groups) et de la programmation réseau (sockets TCP) à travers un cas d’usage concret.
+Ce projet est une preuve de concept (PoC) développée en langage Go, dont l’objectif est de mettre en pratique les concepts de concurrence et de programmation réseau à travers un cas d’usage concret : la détection de doublons et de correspondances approximatives entre des noms issus de fichiers CSV.
 
-L’application implémente un serveur TCP concurrent capable de détecter des doublons et des correspondances approximatives entre des noms provenant de différentes sources de données, en utilisant la distance de Levenshtein.
+L’application repose sur l’algorithme de distance de Levenshtein, permettant de mesurer la similarité entre deux chaînes de caractères, et explore deux approches :
 
----
+une approche séquentielle
+
+une approche concurrente, exploitant les goroutines et les channels
+
+Le projet inclut également un serveur TCP concurrent, capable de traiter plusieurs clients simultanément.
 
 ## Contexte et motivation
 
