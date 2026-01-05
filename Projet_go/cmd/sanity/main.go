@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"  // Affichage standard sur la sortie console
-	"log"  // Gestion simple des erreurs fatales (log + exit)
+	"fmt" // Affichage standard sur la sortie console
+	"log" // Gestion simple des erreurs fatales (log + exit)
+	"os"
 	"time" // Chronométrage des fonctions pour comparaison des méthodes
 
 	"levenshtein/internal/data"
@@ -11,9 +12,16 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("Usage : go run main.go <chemin_du_fichier>")
+		return
+	}
+
+	filePath := os.Args[1]
+	fmt.Println("Fichier utilisé :", filePath)
 	// Charge la première colonne du fichier CSV (en sautant l’en-tête)
 	// Renvoie une liste de chaînes (ex: des noms) et une erreur si échec
-	names, err := data.LoadFirstColumn("data/UniversoGITT_Medellin.csv")
+	names, err := data.LoadFirstColumn(filePath)
 	if err != nil { // En cas d'erreur (fichier absent, CSV invalide, etc.), on arrête le programme et on affiche l'erreur.
 		log.Fatal(err)
 	}
