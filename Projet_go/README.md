@@ -2,7 +2,7 @@
 
 ## Description
 
-Ce projet est une preuve de concept (PoC) développée en langage Go, dont l’objectif est de mettre en pratique les concepts de concurrence et de programmation réseau à travers un cas d’usage concret : la détection de doublons et de correspondances approximatives entre des noms issus de fichiers CSV.
+Ce projet est une preuve de concept (PoC) développée en langage Go, dont l’objectif est de mettre en pratique les concepts de concurrence et de programmation réseau à travers un cas concret : la détection de doublons et de correspondances approximatives entre des noms issus de fichiers CSV.
 
 L’application repose sur l’algorithme de distance de Levenshtein, permettant de mesurer la similarité entre deux chaînes de caractères, et explore deux approches :
 - une approche séquentielle
@@ -10,15 +10,25 @@ L’application repose sur l’algorithme de distance de Levenshtein, permettant
 
 Le projet inclut également un serveur TCP concurrent, capable de traiter plusieurs clients simultanément.
 
-## Contexte et motivation
+> Note : l'utilisation des fichiers et les commandes à utiliser sont données dans la suite pour chaque module exécutable. 
+
+## Équipe
+
+Ce projet est réalisé en groupe par :
+
+- **Anna Grataloup**
+- **Emma Payrard**
+- **Jade Henninot**
+
+## Contexte
 
 Ce projet s’inspire d’un problème réel de qualité des données et d’identification des personnes, notamment mis en évidence dans le contexte des « faux positifs » en Colombie.
 
 Dans ce scandale, des erreurs d’identification ont conduit à des confusions entre individus, souvent à cause de variations ou d’incohérences dans les noms (différences d’orthographe, accents, abréviations, erreurs de saisie ou sources multiples). Ces situations illustrent les limites des comparaisons strictes basées uniquement sur l’égalité exacte des chaînes de caractères.
 
-L’objectif de ce projet est de montrer comment des techniques de rapprochement approximatif, comme la distance de Levenshtein, peuvent être utilisées pour détecter des doublons ou des correspondances potentielles dans une base de données de noms, tout en tenant compte des variations textuelles.
+L’objectif de ce projet est de montrer comment des techniques peuvent être utilisées pour détecter des doublons ou des correspondances potentielles dans une base de données de noms, tout en tenant compte des variations textuelles.
 
-Le projet met également en évidence les enjeux de performance liés à ce type de traitement sur de grands volumes de données, et l’intérêt de la concurrence pour rendre ces analyses exploitables à l’échelle.
+Le projet met également en évidence les enjeux de performance liés à ce type de traitement sur de grands volumes de données, et l’intérêt de la concurrence pour rendre ces analyses exploitables.
 
 
 ## Objectifs du projet
@@ -50,27 +60,26 @@ Le projet est structuré en plusieurs modules :
 
 Cette séparation permet une meilleure lisibilité et une réutilisation des composants dans différents contextes (ligne de commande, réseau).
 
-
 ## Chargement des données (module data)
 
 Le module data est responsable du chargement des noms depuis un fichier CSV ou depuis un flux générique (io.Reader).
 
 Deux fonctions principales sont fournies :
-- LoadFirstColumn(path string) : charge un CSV depuis un fichier
-- LoadFirstColumnFromReader(r io.Reader, skipHeader bool) : charge un CSV depuis un flux (utilisé notamment par le serveur TCP)
+- LoadNamesAndDates(path string) : charge un CSV depuis un fichier
+- LoadNamesAndDatesFromReader(r io.Reader) : charge un CSV depuis un flux (utilisé notamment par le serveur TCP)
 
-Seule la première colonne du CSV est conservée, correspondant aux noms à comparer.
 Les lignes vides ou valeurs vides sont ignorées, et la première ligne est sautée lorsqu’elle correspond à un en-tête.
 
-Le CSV est chargé intégralement en mémoire à l’aide de encoding/csv.ReadAll(), ce qui simplifie l’implémentation dans le cadre de ce projet pédagogique.
+Le CSV est chargé intégralement en mémoire à l’aide de encoding/csv.ReadAll(), ce qui simplifie l’implémentation dans le cadre de ce projet (pas besoin de lire les lignes une par une directement dans le csv).
 
+Les fonctions retournent une liste de structures Person, qui correspondent à un nom et une date. 
 
 ## Distance de Levenshtein (module levenshtein)
 
 La distance de Levenshtein est implémentée via une approche de programmation dynamique.
 
 Principes : 
-- Les chaînes sont converties en []rune afin d’être Unicode-safe, ce qui permet de gérer correctement les accents et caractères non ASCII.
+- Les chaînes sont converties en []rune afin de gérer le Unicode (accents et caractères non ASCII). Ce n'est pas utile dans le cas du fichier fourni (les noms sont en majuscules non accentuées), mais ça pourrait le devenir suivant les fichiers que les clients envoient au serveur. 
 - Les opérations autorisées sont :
    - insertion
    - suppression
@@ -83,8 +92,9 @@ Complexité :
 - Temps : O(n × m)
 - Mémoire : O(m)
 
-
 ## Détection des correspondances (module matcher)
+
+Utilisation de la date : le paramètre useDate permet de choisir si l'on souhaite comparer les dates ou non. En effet, deux personnes pourraient avoir un nom similaire, l'une d'entre elles serait alors supprimée à tort. La comparaison des dates évite ces "faux positifs". Note : on regarde ici si les dates sont exactement égales. On part du principe qu'il n'y a pas à la fois une erreur sur le nom et sur la date. 
 
 Le module matcher fournit deux implémentations du matching :
 
@@ -93,7 +103,8 @@ La fonction FindMatchesSequential compare chaque paire de noms (i, j) avec j > i
 
 Pour chaque paire :
 - la distance de Levenshtein est calculée
-- si la distance est inférieure ou égale au seuil (threshold), la paire est conservée
+- si la distance est inférieure ou égale au seuil (threshold), la paire est conservée dans les matches
+- si useDate est à vrai, on compare aussi les dates
 
 Les résultats sont ensuite triés par :
 - distance croissante
@@ -108,27 +119,33 @@ La fonction FindMatchesConcurrent implémente un worker pool :
 
 Le nombre de workers est configurable ; s’il n’est pas fourni, il est automatiquement fixé au nombre de cœurs CPU (runtime.NumCPU()).
 
-Limitation du volume : un paramètre limit permet de restreindre le nombre de noms traités, afin de contrôler la complexité O(n²) inhérente au problème. 
-
+Limitation du volume : un paramètre limit permet de restreindre le nombre de noms traités, afin de contrôler la complexité O(n²) inhérente au problème (pour les tests notamment)
 
 ## Programme de validation et tests (sanity)
+
+> Utilisation (dans le dossier Projet_go) : `go run cmd/sanity/main.go <chemin vers le fichier .csv de données>`
 
 Le programme sanity permet de :
 - vérifier le bon fonctionnement de l’algorithme de Levenshtein sur des données réelles
 - comparer les temps d’exécution des versions séquentielle et concurrente
 - comparer le nombre de matches suivant si on prend uniquement les noms en compte ou bien si l'on regarde également les dates
+- comparer l'impact du paramètre threshold
 
 Son fonctionnement est le suivant :
 - Chargement des noms depuis un fichier CSV
 - Calcul d’un exemple de distance entre deux noms
-- Exécution du matching séquentiel
-- Exécution du matching concurrent
-- Affichage des temps d’exécution et du nombre de matches
+- Analyse de l'impact du threshold
+- Comparaison avec ou sans date en fonction du nombre de noms
+- Affichage des temps d’exécution 
 
-Un paramètre limit est utilisé pour éviter une explosion du temps de calcul lors des tests.
-
+Le paramètre limit est en partie utilisé pour éviter une explosion du temps de calcul lors des tests.
 
 ## Serveur TCP concurrent
+
+> Utilisation (dans le dossier Projet_go) `go run cmd/server/main.go [--addr :PORT]`
+>> Note : Il faut impérativement lancer le serveur avant le client.
+
+
 9.1 Fonctionnement général
 
 Le serveur TCP écoute sur un port donné (par défaut :8080) et accepte plusieurs connexions simultanément.
@@ -144,11 +161,15 @@ threshold=<int> limit=<int> csvbytes=<int>
 
 9.3 Robustesse réseau
 
-- Un ReadDeadline est appliqué afin d’éviter les blocages en cas de client inactif.
 - La lecture du CSV est effectuée avec io.ReadFull, garantissant la lecture complète des données annoncées.
 - Une taille maximale de CSV (50 MB) est imposée pour éviter les abus.
 
 ## Client TCP
+
+>  Utilisation (dans le dossier Projet_go) `go run cmd/client/main.go [--addr ADDR:PORT] [--csv PATH] [--threshold N] [--limit N] [--usedate 0|1]`
+>> Notes : 
+>>- ne pas oublier de lancer le serveur avant le (les) clients. 
+>>- Attention au chemin vers le csv. 
 
 Le client TCP permet de tester facilement le serveur :
 - lecture d’un fichier CSV local
@@ -225,6 +246,8 @@ Cependant, il pourrait aussi y avoir des erreurs sur les dates (non pris en comp
 - La distance de Levenshtein est calculée intégralement pour chaque paire, sans optimisation par seuil
 - Il faut bien choisir les valeurs des paramètres (threshold en particulier)
 - Nous avons regardé des matches parfaits pour les dates, mais il pourrait très bien y avoir des erreurs à la fois dans les noms et dans les dates, ou uniquement dans les dates. Celles-ci ne sont pas prises en compte par notre algorithme
+- Nous aurions pu également comparer les sexes pour limiter les "faux positifs" (cas des prénoms unisexe)
+- Nos algorithmes retournent les noms doublons. Pour une utilisation réelle avec des clients, il aurait probablement fallu retourner le nouveau fichier csv sans les doublons. 
 
 Ces limites sont acceptables dans le cadre pédagogique du projet.
 
@@ -232,20 +255,4 @@ Ces limites sont acceptables dans le cadre pédagogique du projet.
 ## Conclusion
 
 Ce projet a permis de mettre en œuvre de manière concrète les concepts fondamentaux de concurrence en Go et de programmation réseau.
-Il illustre comment un problème réel de qualité des données peut être traité à l’aide d’algorithmes de matching approximatif, tout en soulignant les enjeux de performance associés.
-
-L’utilisation combinée des goroutines, des channels et des WaitGroups a permis de construire une application concurrente claire, modulaire et fonctionnelle, adaptée à un contexte d’apprentissage.
-
-## Équipe
-
-Ce projet est réalisé en groupe par :
-
-- **Anna Grataloup**
-- **Emma Payrard**
-- **Jade Henninot**
-
-
-
-## Contexte académique
-
-Ce projet est réalisé dans un cadre pédagogique afin de mettre en pratique les concepts de concurrence et de programmation réseau en Go à travers une application concrète, mesurable et ancrée dans un problème réel de qualité des données.
+Il illustre comment un problème réel de qualité des données peut être traité à l’aide d’algorithmes de matching approximatif, tout en soulignant les enjeux de performance associés, et l'importance du bon choix des paramètres

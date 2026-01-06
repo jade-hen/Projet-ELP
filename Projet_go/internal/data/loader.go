@@ -15,7 +15,6 @@ type Person struct {
 }
 
 // Charge le CSV et renvoie []Person (nom + date)
-// Ici on saute l'en-tête (ligne 1) par défaut.
 func LoadNamesAndDates(path string) ([]Person, error) {
 	f, err := os.Open(path)
 	if err != nil {
