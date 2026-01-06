@@ -34,8 +34,6 @@ Le projet met également en évidence les enjeux de performance liés à ce type
 - Calcul de la distance de Levenshtein entre deux chaînes de caractères
 - Détection de doublons et de correspondances approximatives avec un seuil configurable
 - Traitement concurrent des comparaisons grâce aux goroutines
-- Utilisation de channels pour la distribution des tâches
-- Synchronisation des goroutines via des wait groups
 - Serveur TCP capable de gérer plusieurs clients simultanément
 - Mesure et analyse des performances
 
@@ -46,7 +44,7 @@ Le projet est structuré en plusieurs modules :
 - data : chargement et parsing des fichiers CSV
 - levenshtein : calcul de la distance entre deux chaînes
 - matcher : détection des correspondances (séquentielle et concurrente)
-- sanity : programme de validation et de benchmark
+- sanity : programme de validation et de comparaison des performances
 - client TCP : envoi de données au serveur
 - serveur TCP : réception, traitement concurrent et réponse
 
