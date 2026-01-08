@@ -4,6 +4,7 @@ import (
 	"fmt" // Affichage standard sur la sortie console
 	"log" // Gestion simple des erreurs fatales (log + exit)
 	"os"
+	"runtime"
 	"time" // Chronométrage des fonctions pour comparaison des méthodes
 
 	"levenshtein/internal/data"
@@ -35,8 +36,24 @@ func main() {
 	}
 	fmt.Println()
 
-	// ---------------- Table 1 : nb de matches pour limit=5000 et threshold 1..5 ----------------
+	// ---------------- Table 0 : performances pour limit=5000 et nb de workers qui varie ----------------
 	limit := 5000
+	threshold := 2
+	numCPU := runtime.NumCPU()
+
+	nb_workers := []int{1, numCPU / 4, numCPU / 2, numCPU, numCPU * 2, numCPU * 4}
+
+	fmt.Println("=== Performances : pour limit=5000 et nb de workers qui varie ===")
+	fmt.Println("nombre workers\ttemps (ms)")
+	for _, w := range nb_workers {
+		start := time.Now()
+		_ = matcher.FindMatchesConcurrent(persons, threshold, limit, w, false)
+		elapsed := time.Since(start)
+		fmt.Printf("%d\t\t%d\n", w, elapsed.Milliseconds())
+	}
+	fmt.Println()
+
+	// ---------------- Table 1 : nb de matches pour limit=5000 et threshold 1..5 ----------------
 	thresholds := []int{1, 2, 3, 4, 5}
 
 	fmt.Println("=== Performances : nombre de matches pour limit=5000 et threshold 1..5 ===")
@@ -49,7 +66,6 @@ func main() {
 
 	// ---------------- Table 2 : nb de matches pour plusieurs limits, avec et sans date ----------------
 	limits := []int{200, 500, 1000, 5000, 13395}
-	threshold := 2
 
 	fmt.Println("=== Performances : nombre de matches selon limit et utilisation des dates ===")
 	fmt.Println("limit\tuseDate\tnbMatches")

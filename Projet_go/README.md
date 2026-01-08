@@ -205,6 +205,21 @@ Les résultats montrent que :
 - lorsque le volume augmente, la version concurrente permet de réduire le temps d’exécution en exploitant plusieurs cœurs CPU
 - le coût intrinsèque du problème (O(n²)) reste le facteur limitant principal
 
+Nous cherchons aussi à déterminer l'impact du nombre de go routines sur le temps d'exécution du programme concurrentiel. Pour cela, nous comparons les durées en fonction du nombre de go routines (paramètre `workers`). Nous mesurons ces valeurs pour un `threshold` de 2 et une `limit` de 5000 (pour éviter une attente trop longue). 
+
+| Nombre de workers | durée (ms) |
+| ----------------- | ---------- |
+| 1                 | 26494      |
+| 3                 | 11550      |
+| 6                 | 9053       |
+| 12                | 8158       |
+| 24                | 8184       |
+| 48                | 8232       |
+
+Le minimum est obtenu ici pour 12 go routines, même si la durée pour 24 et 48 est sensiblement identique. 12 correspond ici au nombre de CPU de la machine sur laquelle a été exécuté le programme. Comme on peut s'y attendre, il s'agit du nombre minimal de workers pour la résolution la plus rapide possible de ce problème. 
+
+Nous remarquons également que la durée pour un worker est assez proche (à une seconde près) de la durée d'exécution du programme en séquentiel, ce qui est encore une fois attendu.
+
 ### impact du paramètre threshold
 Nous comparons ici le nombre de matches pour différents thresholds, avec une limit de 5000 (pour ne pas que le programme mette trop de temps à s'exécuter) et useDate à faux (on ne compare pas en plus les dates)
 
