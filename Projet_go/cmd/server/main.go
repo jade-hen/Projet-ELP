@@ -40,6 +40,7 @@ func main() {
 		if err != nil {
 			continue
 		}
+		fmt.Println("Client connecté...")
 		go handleConn(conn) // 1 goroutine par client => serveur TCP concurrent
 	}
 }
@@ -47,8 +48,8 @@ func main() {
 func handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	// Évite les blocages infinis
-	_ = conn.SetDeadline(time.Now().Add(60 * time.Second))
+	// Évite les blocages infinis (grande durée car les calculs prennent beaucoup de temps)
+	_ = conn.SetDeadline(time.Now().Add(10 * time.Minute))
 
 	r := bufio.NewReader(conn)
 
@@ -90,7 +91,6 @@ func handleConn(conn net.Conn) {
 		fmt.Fprintln(conn, "ERR not enough persons (need >=2)")
 		return
 	}
-	fmt.Println(bool(req.useDate))
 	// 4) Matching concurrent (workers = NumCPU)
 	workers := runtime.NumCPU()
 	start := time.Now()

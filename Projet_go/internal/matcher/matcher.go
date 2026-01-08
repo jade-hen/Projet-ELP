@@ -85,8 +85,8 @@ func FindMatchesConcurrent(persons []data.Person, threshold, limit, workers int,
 
 	// jobs : file de travail (paires à comparer)
 	// results : file des matches (paires qui passent le threshold)
-	jobs := make(chan job, 10000)
-	results := make(chan Match, 10000)
+	jobs := make(chan job, 1024) //pas besoin d'un gros buffer (jobs consommés en permanence)
+	results := make(chan Match, 1024)
 
 	// WaitGroup pour attendre que tous les workers aient fini
 	var wg sync.WaitGroup
@@ -100,7 +100,7 @@ func FindMatchesConcurrent(persons []data.Person, threshold, limit, workers int,
 				a := persons[jb.i]
 				b := persons[jb.j]
 
-				// Optimisation : si la différence de longueur dépasse le seuil, on ne calcule pas
+				// Optimisation : si la différence de longueur dépasse le seuil, on ne calcule pas (impossible que ça matche)
 				if abs(len(a.Name)-len(b.Name)) > threshold {
 					continue
 				}
@@ -108,7 +108,7 @@ func FindMatchesConcurrent(persons []data.Person, threshold, limit, workers int,
 				d := levenshtein.Distance(a.Name, b.Name)
 				// Si match, on l’envoie dans results
 				if d <= threshold {
-					if !useDate || a.Date == b.Date {
+					if !useDate || a.Date == b.Date { //on compare la date ou non suivant useDate
 						results <- Match{A: a.Name, B: b.Name, Distance: d}
 					}
 				}
