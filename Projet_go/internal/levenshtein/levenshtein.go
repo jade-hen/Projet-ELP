@@ -17,6 +17,7 @@ func Distance(a, b string) int { //fonction avec en entree: 2 chaines a et b et 
 	}
 
 	// prev = ligne précédente de la programmation dynamique, curr = ligne courante
+	// optimisation en mémoire : on ne garde que la ligne précédente et la ligne courante
 	prev := make([]int, len(rb)+1) //Crée un tableau d’entiers de taille len(rb)+1 ; Représente les distances entre un préfixe de a et tous les préfixes de b (y compris le préfixe vide)
 	curr := make([]int, len(rb)+1)
 

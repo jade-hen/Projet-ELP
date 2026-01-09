@@ -16,11 +16,12 @@ import (
 	"levenshtein/internal/matcher"
 )
 
+// ce que le client demande
 type request struct {
 	threshold int
 	limit     int
 	csvBytes  int
-	useDate   bool
+	useDate   int
 }
 
 func main() {
@@ -81,7 +82,7 @@ func handleConn(conn net.Conn) {
 		return
 	}
 
-	// 3) Parser CSV -> []string
+	// 3) Parser CSV -> []Person
 	persons, err := data.LoadNamesAndDatesFromReader(bytes.NewReader(raw))
 	if err != nil {
 		fmt.Fprintln(conn, "ERR csv parse:", err)
@@ -91,21 +92,21 @@ func handleConn(conn net.Conn) {
 		fmt.Fprintln(conn, "ERR not enough persons (need >=2)")
 		return
 	}
-	// 4) Matching concurrent (workers = NumCPU)
+	// 4) Matching concurrent (workers = NumCPU) -> le plus efficace d'après les tests (cf. readme)
 	workers := runtime.NumCPU()
 	start := time.Now()
-	matches := matcher.FindMatchesConcurrent(persons, req.threshold, req.limit, workers, bool(req.useDate))
+	matches := matcher.FindMatchesConcurrent(persons, req.threshold, req.limit, 0, req.useDate != 0)
 	elapsed := time.Since(start)
 
 	// 5) Réponse
-	fmt.Fprintf(conn, "OK persons=%d threshold=%d limit=%d workers=%d\n", len(persons), req.threshold, req.limit, workers)
+	fmt.Fprintf(conn, "OK persons=%d threshold=%d limit=%d workers=%d useDate=%t\n", len(persons), req.threshold, req.limit, workers, req.useDate != 0)
 	fmt.Fprintf(conn, "matches=%d elapsed_ms=%d\n", len(matches), elapsed.Milliseconds())
 
-	maxShow := 20 //affichage de 20 max
+	/*maxShow := 20 //affichage de 20 max
 	if maxShow > len(matches) {
 		maxShow = len(matches)
-	}
-	for i := 0; i < maxShow; i++ {
+	}*/
+	for i := 0; i < len(matches); i++ { //tout afficher (sûrement ce que le client voudrait)
 		m := matches[i]
 		fmt.Fprintf(conn, "d=%d | %s <-> %s\n", m.Distance, m.A, m.B)
 	}
@@ -117,11 +118,11 @@ func parseHeader(line string) request {
 		threshold: 2,
 		limit:     500,
 		csvBytes:  0,
-		useDate:   false,
+		useDate:   0,
 	}
 
 	for _, p := range strings.Fields(line) {
-		kv := strings.SplitN(p, "=", 2)
+		kv := strings.SplitN(p, "=", 2) //kv = key, value
 		if len(kv) != 2 {
 			continue
 		}
@@ -142,8 +143,8 @@ func parseHeader(line string) request {
 				out.csvBytes = x
 			}
 		case "usedate":
-			if x, err := strconv.Atoi(val); err == nil && x != 0 {
-				out.useDate = true
+			if x, err := strconv.Atoi(val); err == nil && x != 0 { //pour éviter valeurs invalides
+				out.useDate = 1
 			}
 		}
 	}
