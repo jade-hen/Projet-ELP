@@ -9,9 +9,7 @@ import Types exposing (Msg(..))
 loadWords : Cmd Types.Msg
 loadWords =
     Http.get
-        { url = "../static/words.txt"
-        , expect = Http.expectString GotWords
-        }
+        { url = "../static/words.txt", expect = Http.expectString GotWords}
 
 
 -- Fichier: "word1 word2 word3 ..." (espaces / retours ligne ok)

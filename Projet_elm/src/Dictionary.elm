@@ -8,9 +8,7 @@ import Types exposing (Meaning, Msg(..))
 fetchMeanings : String -> Cmd Types.Msg
 fetchMeanings word =
     Http.get
-        { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ word
-        , expect = Http.expectJson GotDefs responseDecoder
-        }
+        { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ word, expect = Http.expectJson GotDefs responseDecoder}
 
 
 -- L'API renvoie une LISTE d'entries, on prend la première

@@ -1,61 +1,29 @@
 module Types exposing
-    ( Model
-    , Msg(..)
-    , Status(..)
-    , Meaning
-    , emptyModel
-    , normalize
-    , getAt
-    , httpErrorToString
-    )
+    ( Model, Msg(..), Status(..), Meaning, emptyModel, normalize, getAt, httpErrorToString)
 
 import Http
 import String
 
 
 type Status
-    = Loading
-    | Ready
-    | Won
-    | Error
+    = Loading| Ready| Won| Error
 
 
 type alias Meaning =
-    { partOfSpeech : String
-    , definitions : List String
-    }
+    { partOfSpeech : String, definitions : List String}
 
 
 type alias Model =
-    { words : List String
-    , target : Maybe String
-    , meanings : List Meaning
-    , guess : String
-    , status : Status
-    , error : String
-    , showSolution : Bool
-    }
+    { words : List String, target : Maybe String, meanings : List Meaning, guess : String, status : Status, error : String, showSolution : Bool}
 
 
 emptyModel : Model
 emptyModel =
-    { words = []
-    , target = Nothing
-    , meanings = []
-    , guess = ""
-    , status = Loading
-    , error = ""
-    , showSolution = False
-    }
+    { words = [], target = Nothing, meanings = [], guess = "", status = Loading, error = "", showSolution = False}
 
 
 type Msg
-    = GotWords (Result Http.Error String)
-    | PickedIndex Int
-    | GotDefs (Result Http.Error (List Meaning))
-    | GuessChanged String
-    | NewGame
-    | ToggleSolution
+    = GotWords (Result Http.Error String)| PickedIndex Int| GotDefs (Result Http.Error (List Meaning))| GuessChanged String| NewGame| ToggleSolution
 
 
 normalize : String -> String
