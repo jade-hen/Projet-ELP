@@ -5,33 +5,33 @@ import Http
 import String
 
 
-type Status
-    = Loading| Ready| Won| Error
+type Status --statut du jeu en cours
+    = Loading | Ready | Won | Error
 
 
-type alias Meaning =
+type alias Meaning = -- pour garder la liste des définitions
     { partOfSpeech : String, definitions : List String}
 
 
-type alias Model =
+type alias Model = -- le modèle qui garde l'affichage en cours
     { words : List String, target : Maybe String, meanings : List Meaning, guess : String, status : Status, error : String, showSolution : Bool}
 
 
-emptyModel : Model
+emptyModel : Model -- fonction pour vider le modèle (revenir à la page de départ)
 emptyModel =
     { words = [], target = Nothing, meanings = [], guess = "", status = Loading, error = "", showSolution = False}
 
 
-type Msg
-    = GotWords (Result Http.Error String)| PickedIndex Int| GotDefs (Result Http.Error (List Meaning))| GuessChanged String| NewGame| ToggleSolution
+type Msg -- msg à envoyer pour changer la vue (qd le joueur modifie un paramètre)
+    = GotWords (Result Http.Error String) | PickedIndex Int | GotDefs (Result Http.Error (List Meaning)) | GuessChanged String | NewGame | ToggleSolution
 
 
-normalize : String -> String
+normalize : String -> String -- fonction pour mettre en minuscule 
 normalize s =
     String.toLower (String.trim s)
 
 
-getAt : Int -> List a -> Maybe a
+getAt : Int -> List a -> Maybe a -- ???
 getAt i xs =
     if i < 0 then
         Nothing
@@ -47,7 +47,7 @@ getAt i xs =
                 Nothing
 
 
-httpErrorToString : Http.Error -> String
+httpErrorToString : Http.Error -> String -- pour afficher les erreurs de requêtes http
 httpErrorToString err =
     case err of
         Http.BadUrl u ->

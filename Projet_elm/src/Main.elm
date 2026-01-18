@@ -11,9 +11,10 @@ import Words
 
 main : Program () Model Msg
 main =
-    Browser.element
-        { init = \_ -> init, update = update, view = view, subscriptions = \_ -> Sub.none}
-
+    Browser.element { init = \_ -> init, update = update, view = view, subscriptions = \_ -> Sub.none}
+-- .element parce que avec sandbox on ne peut pas faire de requêtes http
+-- \_ pour dire que init est une fonction qui prend des arguments et retourne init
+-- Sub.none pour dire qu'on ne veut aucune subscription
 
 init : ( Model, Cmd Msg )
 init =
@@ -64,12 +65,12 @@ update msg model =
                         Just w ->
                             Types.normalize s == Types.normalize w
             in
-            if win then
-                ( { newModel | status = Won }, Cmd.none )
-            else
-                ( newModel, Cmd.none )
+                if win then
+                    ( { newModel | status = Won }, Cmd.none )
+                else
+                    ( newModel, Cmd.none )
 
-        ToggleSolution ->
+        ToggleSolution -> -- basculer entre voir solution et ne pas la voir (d'où le not qui permet de passer de l'un à l'autre)
             ( { model | showSolution = not model.showSolution }, Cmd.none )
 
         NewGame ->
@@ -78,11 +79,11 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div
+    div -- en gros, ça liste tous les éléments de la page à afficher : titre, consigne, définitions + type de mots dans une liste ordonnée, cadre de réponse et voir la solution, résultat (gagné)
         [ style "max-width" "820px", style "margin" "24px auto", style "font-family" "system-ui", style "line-height" "1.4" ]
         [ h1 [] [ text "GuessIt" ], p [] [ text "Lis les définitions (par catégorie) et devine le mot." ], viewError model, viewMeanings model, div [ style "margin-top" "14px" ]
             [ input
-                [ type_ "text", value model.guess, onInput GuessChanged, placeholder "Ta réponse...", style "width" "100%", style "padding" "10px"]
+                [ type_ "text", value model.guess, onInput GuessChanged, placeholder "Réponse...", style "width" "100%", style "padding" "10px"]
                 []
             ]
         , if model.status == Won then
@@ -92,9 +93,9 @@ view model =
           else
             text ""
         , div [ style "margin-top" "12px", style "display" "flex", style "gap" "10px" ]
-            [ button [ onClick NewGame, disabled (List.isEmpty model.words), style "padding" "10px 14px" ] [ text "New game" ]
+            [ button [ onClick NewGame, disabled (List.isEmpty model.words), style "padding" "10px 14px" ] [ text "Nouveau mot" ]
             , button [ onClick ToggleSolution, disabled (model.target == Nothing), style "padding" "10px 14px" ]
-                [ text (if model.showSolution then "Hide solution" else "Show solution") ]
+                [ text (if model.showSolution then "Cacher la solution" else "Montrer la solution") ]
             , viewSolution model
             ]
         ]
@@ -106,7 +107,7 @@ viewMeanings model =
         p [] [ text "Définitions : (en attente…)" ]
     else
         div []
-            (List.map viewMeaningCard model.meanings)
+            (List.map viewMeaningCard model.meanings) -- afficher les différentes définitions
 
 
 viewMeaningCard : Meaning -> Html msg
@@ -114,13 +115,13 @@ viewMeaningCard meaning =
     div
         [ style "border" "1px solid #ddd", style "border-radius" "10px", style "padding" "12px 14px", style "margin-top" "10px" ]
         [ div [ style "font-weight" "700", style "margin-bottom" "8px" ]
-            [ text (meaning.partOfSpeech ++ "") ], ol [ style "margin" "0 0 0 18px" ]
-            (List.map (\d -> li [ style "margin-bottom" "6px" ] [ text d ]) meaning.definitions)]
+            [ text (meaning.partOfSpeech ++ "") ], ol [ style "margin" "0 0 0 18px" ] -- liste ordonnée des définitions
+            (List.map (\d -> li [ style "margin-bottom" "6px" ] [ text d ]) meaning.definitions)] --chaque définition
 
 
 viewSolution : Model -> Html msg
 viewSolution model =
-    if model.showSolution then
+    if model.showSolution then --affiche la solution si demandé
         case model.target of
             Nothing ->
                 text ""
@@ -132,7 +133,7 @@ viewSolution model =
         text ""
 
 
-viewError : Model -> Html msg
+viewError : Model -> Html msg --affiche l'erreur en rouge (utilisé par exemple si pbm réseau)
 viewError model =
     if model.error == "" then
         text ""
