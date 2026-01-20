@@ -20,6 +20,30 @@ Ce projet est réalisé en groupe par :
 - **Emma Payrard**
 - **Jade Henninot**
 
+
+## Utilisation 
+### Programme de validation et tests (sanity)
+Depuis le dossier `Projet_go` : `go run cmd/sanity/main.go <chemin vers le fichier .csv de données>`
+Affiche les résultats de tests de performances (durée en fonction du nombre de workers par exemple) et l'impact des différents paramètres sur le nombre de résultats obtenus. 
+Il suffit de donner le chemin vers le fichier de données.
+
+### Serveur TCP concurrent
+
+Dans deux terminaux différents :
+1. Depuis le dossier `Projet_go` : `go run cmd/server/main.go [--addr :PORT]`
+2. Depuis le dossier `Projet_go` : `go run cmd/client/main.go [--addr ADDR:PORT] [--csv PATH] [--threshold N] [--limit N] [--usedate 0|1]`
+
+Le (les) client(s) envoie(nt) au serveur un fichier csv dont il(s) cherche(nt) les doublons. Le server répond en envoyant la liste des doublons et des statistiques (durée, nombre de doublons).
+
+Il faut impérativement mettre l'adresse du csv. Les autres paramètres ont des valeurs par défaut. Il est conseillé d'indiquer  `limit` (nombre de lignes à considérer, par défaut, c'est 500 pour les tests), le fichier csv fourni contient 13395 entrées. 
+
+Les autres paramètres : 
+- `addr` : adresse et port du serveur à joindre
+- `threshold` : seuil maximal pour considérer deux noms comme identiques selon la distance de levenshtein (défaut : 2)
+- `usedate` : 1 pour oui, 0 pour non. Sert à appliquer ou non la comparaison de la date pour une réponse plus fine. 
+
+> Attention à bien lancer le serveur avant les clients. 
+
 ## Contexte
 
 Ce projet s’inspire d’un problème réel de qualité des données et d’identification des personnes, notamment mis en évidence dans le contexte des « faux positifs » en Colombie.
@@ -123,7 +147,7 @@ Limitation du volume : un paramètre limit permet de restreindre le nombre de no
 
 ## Programme de validation et tests (sanity)
 
-> Utilisation (dans le dossier Projet_go) : `go run cmd/sanity/main.go <chemin vers le fichier .csv de données>`
+> Utilisation (depuis le dossier Projet_go) : `go run cmd/sanity/main.go <chemin vers le fichier .csv de données>`
 
 Le programme sanity permet de :
 - vérifier le bon fonctionnement de l’algorithme de Levenshtein sur des données réelles
@@ -142,7 +166,7 @@ Le paramètre limit est en partie utilisé pour éviter une explosion du temps d
 
 ## Serveur TCP concurrent
 
-> Utilisation (dans le dossier Projet_go) `go run cmd/server/main.go [--addr :PORT]`
+> Utilisation (depuis le dossier Projet_go) `go run cmd/server/main.go [--addr :PORT]`
 >> Note : Il faut impérativement lancer le serveur avant le client.
 
 
@@ -166,7 +190,7 @@ threshold=<int> limit=<int> csvbytes=<int>
 
 ## Client TCP
 
->  Utilisation (dans le dossier Projet_go) `go run cmd/client/main.go [--addr ADDR:PORT] [--csv PATH] [--threshold N] [--limit N] [--usedate 0|1]`
+>  Utilisation (depuis le dossier Projet_go) `go run cmd/client/main.go [--addr ADDR:PORT] [--csv PATH] [--threshold N] [--limit N] [--usedate 0|1]`
 >> Notes : 
 >>- ne pas oublier de lancer le serveur avant le (les) clients. 
 >>- Attention au chemin vers le csv. 
