@@ -10,8 +10,6 @@ L’application repose sur l’algorithme de distance de Levenshtein, permettant
 
 Le projet inclut également un serveur TCP concurrent, capable de traiter plusieurs clients simultanément.
 
-> Note : l'utilisation des fichiers et les commandes à utiliser sont données dans la suite pour chaque module exécutable. 
-
 ## Équipe
 
 Ce projet est réalisé en groupe par :
