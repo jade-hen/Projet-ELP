@@ -11,13 +11,12 @@ import Words
 
 main : Program () Model Msg
 main =
-    Browser.element { init = \_ -> init, update = update, view = view, subscriptions = \_ -> Sub.none}
+    Browser.element { init = init, update = update, view = view, subscriptions = \_ -> Sub.none}
 -- .element parce que avec sandbox on ne peut pas faire de requêtes http
--- \_ pour dire que init est une fonction qui prend des arguments et retourne init
 -- Sub.none pour dire qu'on ne veut aucune subscription
 
-init : ( Model, Cmd Msg )
-init =
+init : () -> ( Model, Cmd Msg )
+init _ =
     ( Types.emptyModel, Words.loadWords )
 
 
