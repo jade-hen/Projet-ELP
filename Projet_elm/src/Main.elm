@@ -65,37 +65,45 @@ update msg model =
                             Types.normalize s == Types.normalize w
             in
                 if win then
-                    ( { newModel | status = Won }, Cmd.none )
+                    if model.solutionShown == False then --si le joueur n'a pas regardé la solution, il gagne un point
+                        ( { newModel | status = Won, showSolution = False, points = model.points+1 }, Cmd.none )
+                    else --sinon il n'en gagne pas
+                        ( { newModel | status = Won, showSolution = False }, Cmd.none )
                 else
                     ( newModel, Cmd.none )
 
         ToggleSolution -> -- basculer entre voir solution et ne pas la voir (d'où le not qui permet de passer de l'un à l'autre)
-            ( { model | showSolution = not model.showSolution }, Cmd.none )
+            ( { model | showSolution = not model.showSolution, solutionShown = True }, Cmd.none )
 
         NewGame ->
-            ( { model | meanings = [], guess = "", error = "", status = Loading, showSolution = False }, Words.chooseRandomIndex model.words )
+            ( { model | meanings = [], guess = "", error = "", status = Loading, showSolution = False, solutionShown = False }, Words.chooseRandomIndex model.words )
 
 
 view : Model -> Html Msg
 view model =
-    div -- en gros, ça liste tous les éléments de la page à afficher : titre, consigne, définitions + type de mots dans une liste ordonnée, cadre de réponse et voir la solution, résultat (gagné)
-        [ style "max-width" "820px", style "margin" "24px auto", style "font-family" "system-ui", style "line-height" "1.4" ]
-        [ h1 [] [ text "GuessIt" ], p [] [ text "Lis les définitions (par catégorie) et devine le mot." ], viewError model, viewMeanings model, div [ style "margin-top" "14px" ]
-            [ input
-                [ type_ "text", value model.guess, onInput GuessChanged, placeholder "Réponse...", style "width" "100%", style "padding" "10px"]
-                []
-            ]
-        , if model.status == Won then
-            p [ style "margin-top" "10px", style "font-weight" "700" ]
-                [ text "✅ Correct !" ]
+    div []
+        [ div -- affichage des points
+            [ style "position" "fixed", style "top" "20px", style "left" "20px", style "font-weight" "700", style "font-size" "18px",  style "font-family" "system-ui"]
+            [ text ("Points : " ++ String.fromInt model.points) ]
+        , div  -- affichage du reste
+            [ style "max-width" "820px", style "margin" "24px auto", style "font-family" "system-ui", style "line-height" "1.4" ]
+            [ h1 [] [ text "GuessIt" ], p [] [ text "Lis les définitions (par catégorie) et devine le mot." ], viewError model, viewMeanings model, div [ style "margin-top" "14px" ]
+                [ input
+                    [ type_ "text", value model.guess, onInput GuessChanged, placeholder "Réponse...", style "width" "100%", style "padding" "10px"]
+                    []
+                ]
+            , if model.status == Won then
+                p [ style "margin-top" "10px", style "font-weight" "700" ]
+                    [ text "✅ Correct !" ]
 
-          else
-            text ""
-        , div [ style "margin-top" "12px", style "display" "flex", style "gap" "10px" ]
-            [ button [ onClick NewGame, disabled (List.isEmpty model.words), style "padding" "10px 14px" ] [ text "Nouveau mot" ]
-            , button [ onClick ToggleSolution, disabled (model.target == Nothing), style "padding" "10px 14px" ]
-                [ text (if model.showSolution then "Cacher la solution" else "Montrer la solution") ]
-            , viewSolution model
+            else
+                text ""
+            , div [ style "margin-top" "12px", style "display" "flex", style "gap" "10px" ]
+                [ button [ onClick NewGame, disabled (List.isEmpty model.words), style "padding" "10px 14px" ] [ text "Nouveau mot" ]
+                , button [ onClick ToggleSolution, disabled (model.target == Nothing ||  model.status == Won ), style "padding" "10px 14px" ]
+                    [ text (if model.showSolution then "Cacher la solution" else "Montrer la solution") ]
+                , viewSolution model
+                ]
             ]
         ]
 
@@ -106,7 +114,7 @@ viewMeanings model =
         p [] [ text "Définitions : (en attente…)" ]
     else
         div []
-            (List.map viewMeaningCard model.meanings) -- afficher les différentes définitions
+            (List.map viewMeaningCard model.meanings) -- afficher les différentes définitions par partOfSpeech
 
 
 viewMeaningCard : Meaning -> Html msg

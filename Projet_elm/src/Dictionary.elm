@@ -6,7 +6,7 @@ import Types exposing (Meaning, Msg(..))
 
 
 fetchMeanings : String -> Cmd Types.Msg -- la fonction prend en entrée un mot et utilise l'api pour récupérer la définition (url ++ mot)
-fetchMeanings word =                    -- et ensuite ça envoie le message comme quoi on a reçu (ou pas) la def ? 
+fetchMeanings word =                    -- et ensuite ça envoie le message comme quoi on a reçu (ou pas) la def  
     Http.get
         { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ word, expect = Http.expectJson GotDefs responseDecoder} 
 

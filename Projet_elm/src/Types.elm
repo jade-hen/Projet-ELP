@@ -14,12 +14,12 @@ type alias Meaning = -- pour garder la liste des définitions
 
 
 type alias Model = -- le modèle qui garde l'affichage en cours
-    { words : List String, target : Maybe String, meanings : List Meaning, guess : String, status : Status, error : String, showSolution : Bool}
+    { words : List String, target : Maybe String, meanings : List Meaning, guess : String, status : Status, error : String, showSolution : Bool, points : Int, solutionShown : Bool}
 
 
 emptyModel : Model -- fonction pour vider le modèle (revenir à la page de départ)
 emptyModel =
-    { words = [], target = Nothing, meanings = [], guess = "", status = Loading, error = "", showSolution = False}
+    { words = [], target = Nothing, meanings = [], guess = "", status = Loading, error = "", showSolution = False, points = 0, solutionShown = False }
 
 
 type Msg -- msg à envoyer pour changer la vue (qd le joueur modifie un paramètre)
@@ -31,7 +31,7 @@ normalize s =
     String.toLower (String.trim s)
 
 
-getAt : Int -> List a -> Maybe a -- ???
+getAt : Int -> List a -> Maybe a -- récupérer le mot à l'indice i de la liste de mots de façon récursive
 getAt i xs =
     if i < 0 then
         Nothing
