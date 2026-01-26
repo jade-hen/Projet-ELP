@@ -9,7 +9,6 @@ import Types exposing (Meaning, Model, Msg(..), Status(..))
 import Words
 
 
-main : Program () Model Msg
 main =
     Browser.element { init = init, update = update, view = view, subscriptions = \_ -> Sub.none}
 -- .element parce que avec sandbox on ne peut pas faire de requêtes http
