@@ -53,3 +53,29 @@ Projet_elm/
 - **static/words.txt**  
   Fichier contenant les mots utilisés par le jeu.
 
+
+
+## Explication du flux du jeu
+
+1. **Démarrage** : `init` lance `Words.loadWords` pour charger `static/words.txt`.
+2. **Mots chargés** : `GotWords (Ok txt)` → `Words.parseWords txt` remplit `model.words`, puis `Words.chooseRandomIndex` tire un index.
+3. **Mot choisi** : `PickedIndex i` → récupère le mot dans `model.words`, le met dans `target`, puis lance `Dictionary.fetchMeanings`.
+4. **Définitions reçues** : `GotDefs (Ok meanings)` → stocke `meanings` et passe l’état à `Ready`.
+5. **Jeu** : `GuessChanged` met à jour `guess` et si `normalize guess == normalize target` → état `Won` (+1 point si la solution n’a pas été affichée).  
+   `NewGame` relance un tirage, `ToggleSolution` affiche/cache la solution.
+
+
+## Erreurs possibles
+
+- **`BadStatus: 404`** : fichier `words.txt` introuvable ou mot non trouvé par l’API.
+- **`NetworkError`** : problème de connexion réseau / accès API.
+- **`Timeout`** : la requête met trop de temps.
+- **`BadBody: ...`** : réponse JSON inattendue / décodage impossible.
+
+
+
+## Auteurs
+Ce projet a été réalisé en groupe par :
+- **Anna Grataloup**
+- **Emma Payrard**
+- **Jade Henninot**
