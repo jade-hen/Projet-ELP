@@ -62,13 +62,14 @@ func handleConn(conn net.Conn) {
 	}
 	header := string(headerBytes)
 
+	// récupérer les paramètres demandés par l'utilisateur
 	req := parseHeader(strings.TrimSpace(header))
 	if req.csvBytes <= 0 {
 		fmt.Fprintln(conn, "ERR csvbytes must be > 0")
 		return
 	}
 
-	// Protection simple (évite d'avaler des tailles absurdes)
+	// Protection simple (évite les tailles absurdes)
 	const maxCSV = 50 * 1024 * 1024 // 50MB
 	if req.csvBytes > maxCSV {
 		fmt.Fprintln(conn, "ERR csvbytes too large (max 50MB)")
@@ -113,7 +114,7 @@ func handleConn(conn net.Conn) {
 	conn.Close()
 }
 
-func parseHeader(line string) request {
+func parseHeader(line string) request { // récupérer les paramètres demandés par l'utilisateur
 	out := request{
 		threshold: 2,
 		limit:     500,
@@ -122,7 +123,7 @@ func parseHeader(line string) request {
 	}
 
 	for _, p := range strings.Fields(line) {
-		kv := strings.SplitN(p, "=", 2) //kv = key, value
+		kv := strings.SplitN(p, "=", 2) //kv = (key, value)
 		if len(kv) != 2 {
 			continue
 		}
