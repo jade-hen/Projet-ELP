@@ -85,7 +85,7 @@ func main() {
 	fmt.Println("limit\tthreshold\tsequential(ms)\tconcurrent(ms)")
 	for _, lim := range limits {
 		for _, th := range thresholds {
-			// Séquentiel
+			// Séquentiel (1 thread/goroutine)
 			startSeq := time.Now()
 			_ = matcher.FindMatchesSequential(persons, th, lim, true)
 			elapsedSeq := time.Since(startSeq)
