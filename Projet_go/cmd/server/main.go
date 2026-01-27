@@ -24,6 +24,7 @@ type request struct {
 	useDate   int
 }
 
+// démarrage du serveur + acceptation des clients
 func main() {
 	addr := flag.String("addr", ":8080", "Adresse d'écoute (ex: :8080)")
 	flag.Parse()
