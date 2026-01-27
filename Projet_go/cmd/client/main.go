@@ -20,12 +20,13 @@ func main() {
 
 	flag.Parse()
 
+	// Lecture du fichier CSV en mémoire
 	csvBytes, err := os.ReadFile(*csvPath)
 	if err != nil {
 		panic(err)
 	}
 
-	// 
+	// Connexion TCP au serveur (avec timeout)
 	conn, err := net.DialTimeout("tcp", *addr, 5*time.Second)
 	if err != nil {
 		panic(err)
