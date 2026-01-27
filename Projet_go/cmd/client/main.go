@@ -25,6 +25,7 @@ func main() {
 		panic(err)
 	}
 
+	// 
 	conn, err := net.DialTimeout("tcp", *addr, 5*time.Second)
 	if err != nil {
 		panic(err)
