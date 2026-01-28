@@ -1,0 +1,12 @@
+{
+  "name": "flip7",
+  "version": "1.0.0",
+  "description": "flip7",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "game.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
