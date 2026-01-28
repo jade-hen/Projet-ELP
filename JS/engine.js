@@ -74,12 +74,11 @@ function applyNumberCard(player, value, deck, logger, meta) {
 
   if (r.numbers.includes(value)) {
     if (r.hasSecondChance) {
-      r.hasSecondChance = false;
-      discardCard(deck, { type: "ACTION", name: "SECOND_CHANCE", virtual: true });
-      discardCard(deck, { type: "NUMBER", value, virtual: true });
-      logger.log("SECOND_CHANCE_USED", { ...meta, player: player.name, duplicateValue: value });
-      return { ok: true, duplicate: true, usedSecondChance: true };
+        r.hasSecondChance = false;
+        logger.log("SECOND_CHANCE_USED", { ...meta, player: player.name, duplicateValue: value });
+        return { ok: true, duplicate: true, usedSecondChance: true };
     }
+
     r.active = false;
     r.bustedByDuplicate = true;
     logger.log("BUST_DUPLICATE", { ...meta, player: player.name, value });
@@ -174,6 +173,8 @@ async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, 
     if (roundCtx.ended) break;
 
     const card = drawCard(deck, logger, meta);
+    roundCtx.tableCards.push(card); 
+
     logger.log("FLIP_THREE_DRAW", { ...meta, target: target.name, index: i, card: { ...card } });
     console.log(`${target.name} (FlipThree) pioche ${i}/3: ${cardToString(card)}`);
 
@@ -207,6 +208,8 @@ async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, 
 
 async function drawAndResolveForPlayer(player, allPlayers, deck, roundCtx, rl, logger, meta) {
   const card = drawCard(deck, logger, meta);
+  roundCtx.tableCards.push(card); // on garde la carte sur la table pour la défausse de fin de tour
+
   logger.log("DRAW", { ...meta, player: player.name, card: { ...card } });
   console.log(`${player.name} pioche: ${cardToString(card)}`);
 
@@ -250,6 +253,8 @@ async function initialDeal(players, deck, roundCtx, rl, logger, meta) {
       if (dealt.has(p.id)) continue;
 
       const card = drawCard(deck, logger, meta);
+      roundCtx.tableCards.push(card);
+
       logger.log("DEAL", { ...meta, to: p.name, card: { ...card } });
       console.log(`Distribution à ${p.name}: ${cardToString(card)}`);
 
@@ -310,7 +315,6 @@ function discardEndOfRoundSecondChance(players, deck, logger, meta) {
   for (const p of players) {
     if (p.round.hasSecondChance) {
       p.round.hasSecondChance = false;
-      discardCard(deck, { type: "ACTION", name: "SECOND_CHANCE", virtual: true });
       logger.log("SECOND_CHANCE_DISCARDED_END_ROUND", { ...meta, player: p.name });
     }
   }
@@ -319,7 +323,14 @@ function discardEndOfRoundSecondChance(players, deck, logger, meta) {
 async function playRound(players, deck, dealerIndex, rl, logger, gameId, roundNo) {
   players.forEach(initRoundState);
 
-  const roundCtx = { roundNo, ended: false, endReason: null, flip7By: null };
+  const roundCtx = {
+  roundNo,
+  ended: false,
+  endReason: null,
+  flip7By: null,
+  tableCards: [], // toutes les cartes révélées pendant ce tour
+    };
+
   const meta = { gameId, round: roundNo };
 
   const dealer = players[dealerIndex];
@@ -338,6 +349,12 @@ async function playRound(players, deck, dealerIndex, rl, logger, gameId, roundNo
     roundScores[p.name] = s;
     p.total += s;
   }
+  // Fin de tour : toutes les cartes révélées vont en défausse
+  for (const c of roundCtx.tableCards) {
+    discardCard(deck, c);
+  }
+  logger.log("MOVE_TABLE_TO_DISCARD", { ...meta, count: roundCtx.tableCards.length });
+  roundCtx.tableCards = [];
 
   logger.log("ROUND_END", {
     ...meta,
