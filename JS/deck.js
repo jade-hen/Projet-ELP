@@ -54,12 +54,16 @@ function discardCard(deck, card) {
 
 function reshuffleIfNeeded(deck, logger, meta) {
   if (deck.draw.length > 0) return;
-  if (deck.discard.length === 0) throw new Error("Plus de cartes (draw et discard vides).");
+  if (deck.discard.length === 0)
+    throw new Error("Plus de cartes (draw et discard vides).");
 
   deck.draw = shuffle(deck.discard);
   deck.discard = [];
+
   logger.log("RESHUFFLE", { ...meta, newDrawSize: deck.draw.length });
+  console.log("→ Défausse utilisée et pioche mélangée");
 }
+
 
 function drawCard(deck, logger, meta) {
   reshuffleIfNeeded(deck, logger, meta);
