@@ -242,8 +242,8 @@ function showTable(players) {
   }
   console.log("-------------\n");
 }
-
-async function initialDeal(players, deck, roundCtx, rl, logger, meta) {
+/*
+async function initialDeal(players, deck, roundCtx, rl, logger, meta) { // possibilité de l'enlever et de 
   // Interruption si Action: on résout immédiatement, puis on reprend.
   const dealt = new Set();
 
@@ -261,6 +261,7 @@ async function initialDeal(players, deck, roundCtx, rl, logger, meta) {
       if (card.type === "ACTION") {
         logger.log("DEAL_ACTION_INTERRUPT", { ...meta, to: p.name, card: cardToString(card) });
         await resolveActionCard(card, p, players, deck, roundCtx, rl, logger, meta);
+        dealt.add(p.id);
       } else if (card.type === "NUMBER") {
         applyNumberCard(p, card.value, deck, logger, meta);
         checkFlip7AndMaybeEndRound(p, roundCtx, logger, meta);
@@ -274,9 +275,10 @@ async function initialDeal(players, deck, roundCtx, rl, logger, meta) {
       if (roundCtx.ended) return;
     }
   }
-}
+}*/
 
 async function roundLoop(players, deck, roundCtx, rl, logger, meta) {
+  firstDeal = true;
   while (!roundCtx.ended) {
     const active = players.filter((p) => p.round.active && !p.round.stood);
     if (active.length === 0) {
@@ -288,15 +290,21 @@ async function roundLoop(players, deck, roundCtx, rl, logger, meta) {
     for (const p of players) {
       if (roundCtx.ended) break;
       if (!p.round.active || p.round.stood) continue;
-
-      showTable(players);
-      console.log(`${p.name}, total: ${p.total}. Potentiel tour: ${computeRoundScore(p)}`);
-      console.log("Choix: (h)it = recevoir une carte, (s)tand = rester");
-
+      
+      if (!firstDeal){ // si ce n'est pas le premier tour, on laisse le choix au joueur de rester ou pas
+        showTable(players);
+        console.log(`${p.name}, total: ${p.total}. Potentiel tour: ${computeRoundScore(p)}`);
+        console.log("Choix: (h)it = recevoir une carte, (s)tand = rester");
+      }
       while (true) {
-        const ans = (await rl.question("> ")).trim().toLowerCase();
-        if (ans === "h" || ans === "hit") {
-          logger.log("CHOICE", { ...meta, player: p.name, choice: "HIT" });
+        let ans = "";
+        if (!firstDeal){ // on demande au joueur
+          ans = (await rl.question("> ")).trim().toLowerCase();
+        } 
+        if (firstDeal || ans === "h" || ans === "hit") {
+          if (!firstDeal){
+            logger.log("CHOICE", { ...meta, player: p.name, choice: "HIT" });
+          }
           await drawAndResolveForPlayer(p, players, deck, roundCtx, rl, logger, meta);
           break;
         }
@@ -308,6 +316,7 @@ async function roundLoop(players, deck, roundCtx, rl, logger, meta) {
         console.log("Entrée invalide. Tape h ou s.");
       }
     }
+    firstDeal = false;
   }
 }
 
@@ -338,7 +347,7 @@ async function playRound(players, deck, dealerIndex, rl, logger, gameId, roundNo
 
   console.log(`\n====================\nTOUR #${roundNo} (donneur: ${dealer.name})\n====================\n`);
 
-  await initialDeal(players, deck, roundCtx, rl, logger, meta);
+  //await initialDeal(players, deck, roundCtx, rl, logger, meta); // à enlever ?
   if (!roundCtx.ended) await roundLoop(players, deck, roundCtx, rl, logger, meta);
 
   discardEndOfRoundSecondChance(players, deck, logger, meta);
