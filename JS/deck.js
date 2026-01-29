@@ -6,9 +6,10 @@ function shuffle(arr) {
   return arr;
 }
 
-function buildDeck(config) {
+function buildDeck(config) { //nbPlayers
   const cards = [];
 
+  // for i in range(nbPlayers//18+1) // pour ajouter un paquet si besoin avec // le résultat de la division euclidienne
   // 0
   cards.push({ type: "NUMBER", value: 0 });
 

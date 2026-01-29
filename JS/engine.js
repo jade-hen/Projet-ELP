@@ -293,7 +293,7 @@ function discardEndOfRoundSecondChance(players, deck, logger, meta) {
   }
 }
 
-async function playRound(players, deck, dealerIndex, rl, logger, roundNo) { //gameId, 
+async function playRound(players, deck, dealerIndex, rl, logger, roundNo) {  
   players.forEach(initRoundState);
 
   const roundCtx = {
@@ -304,7 +304,7 @@ async function playRound(players, deck, dealerIndex, rl, logger, roundNo) { //ga
   tableCards: [], // toutes les cartes révélées pendant ce tour
     };
 
-  const meta = { round: roundNo }; //gameId, 
+  const meta = { round: roundNo }; 
 
   const dealer = players[dealerIndex];
   logger.log("ROUND_START", { ...meta, dealer: dealer.name });

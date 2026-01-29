@@ -45,7 +45,7 @@ async function main() {
   }
   logger.log("PLAYERS", { players: players.map((p) => p.name) });//gameId, 
 
-  const deck = createDeckRuntime(DECK_CONFIG);
+  const deck = createDeckRuntime(DECK_CONFIG); // rajouter le nombre de joueur pour savoir avec combien de paquets de cartes il faut jouer (+ ajouter un print pour montrer que ça marche bien)
 
   let dealerIndex = 0;
   let roundNo = 1;
