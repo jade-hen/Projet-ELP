@@ -4,15 +4,15 @@ const { drawCard, discardCard, cardToString } = require("./deck");
 const TARGET_SCORE = 200;
 const FLIP7_BONUS = 15;
 
-function makeId(prefix = "id") {
+function makeId(prefix = "id") {//id pour quoi ? besoin que ce soit aussi compliqué ?
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
 }
 
-function makePlayer(name) {
+function makePlayer(name) { // pourquoi besoin d'un id ? pour identifier de façon unique un joueur (pas juste avec le nom)
   return { id: makeId("p"), name, total: 0, round: null };
 }
 
-function initRoundState(player) {
+function initRoundState(player) {//état d'un joueur
   player.round = {
     active: true,
     stood: false,
@@ -21,32 +21,28 @@ function initRoundState(player) {
     hasX2: false,
     hasSecondChance: false,
     flip7: false,
-    bustedByDuplicate: false,
-    bustedByFreeze: false,
+    bustedByDuplicate: false, //éliminé par une carte en double
+    bustedByFreeze: false, //éliminé par une carte freeze
   };
 }
 
-function countUniqueNumbers(player) {
+function countUniqueNumbers(player) {// pas obligé de faire une fonction juste pour ça ?
   return new Set(player.round.numbers).size;
 }
 
-function computeRoundScore(player) {
+function computeRoundScore(player) { // calculer le score d'un tour pour un joueur
   const r = player.round;
   if (!r) return 0;
 
-  // PRIORITÉ: si Freeze => 0 quoi qu'il arrive
-  if (r.bustedByFreeze) return 0;
+  // PRIORITÉ: si Freeze ou doublon => 0 quoi qu'il arrive
+  if (r.bustedByFreeze || r.bustedByDuplicate) return 0;
 
-  // Doublon => 0
-  if (r.bustedByDuplicate) return 0;
-
-  const sumNumbers = r.numbers.reduce((a, b) => a + b, 0);
+  const sumNumbers = r.numbers.reduce((a, b) => a + b, 0); //réduire le tableau en appliquant la fonction => fait la somme de tous les éléments
   const numbersPart = r.hasX2 ? sumNumbers * 2 : sumNumbers; // x2 ne double pas les bonus
   let score = numbersPart + r.modifiersPlus;
   if (r.flip7) score += FLIP7_BONUS;
   return score;
 }
-
 
 function checkFlip7AndMaybeEndRound(player, roundCtx, logger, meta) {
   if (countUniqueNumbers(player) >= 7) {
@@ -62,23 +58,23 @@ function applyModifierCard(player, card, logger, meta) {
   const r = player.round;
   if (card.kind === "X2") {
     r.hasX2 = true;
-    logger.log("ADD_X2", { ...meta, player: player.name });
+    logger.log("ADD_X2", { ...meta, player: player.name }); //utile ?
   } else {
     r.modifiersPlus += card.value;
-    logger.log("ADD_PLUS", { ...meta, player: player.name, plus: card.value, totalPlus: r.modifiersPlus });
+    logger.log("ADD_PLUS", { ...meta, player: player.name, plus: card.value, totalPlus: r.modifiersPlus }); //utile ?
   }
 }
 
 function applyNumberCard(player, value, deck, logger, meta) {
   const r = player.round;
 
-  if (r.numbers.includes(value)) {
+  if (r.numbers.includes(value)) {//si le joueur a déjà la carte
     if (r.hasSecondChance) {
         r.hasSecondChance = false;
         logger.log("SECOND_CHANCE_USED", { ...meta, player: player.name, duplicateValue: value });
         return { ok: true, duplicate: true, usedSecondChance: true };
     }
-
+    //pas de seconde chance, joueur éliminé
     r.active = false;
     r.bustedByDuplicate = true;
     logger.log("BUST_DUPLICATE", { ...meta, player: player.name, value });
@@ -100,7 +96,7 @@ function freezePlayer(target, logger, meta) {
 }
 
 
-async function chooseTarget(activePlayers, currentPlayer, rl) {
+async function chooseTarget(activePlayers, currentPlayer, rl) {//choisir une cible pour appliquer la carte 
   if (activePlayers.length === 1) return activePlayers[0];
 
   while (true) {
@@ -124,7 +120,7 @@ async function handleSecondChanceDraw(receiver, allPlayers, deck, logger, meta, 
   }
 
   const active = allPlayers.filter((p) => p.round.active && !p.round.stood);
-  const eligible = active.filter((p) => !p.round.hasSecondChance);
+  const eligible = active.filter((p) => !p.round.hasSecondChance);//tous ceux qui n'ont pas de seconde chance
 
   if (eligible.length === 0) {
     discardCard(deck, { type: "ACTION", name: "SECOND_CHANCE", virtual: false });
@@ -144,14 +140,14 @@ async function resolveActionCard(card, sourcePlayer, allPlayers, deck, roundCtx,
   if (card.name === "FREEZE") {
     const target = await chooseTarget(activePlayers, sourcePlayer, rl);
     logger.log("ACTION_FREEZE_TARGET", { ...meta, from: sourcePlayer.name, to: target.name, duringFlipThree: !!opts.duringFlipThree });
-    freezePlayer(target, logger, meta);
+    freezePlayer(target, logger, meta); //plein de lignes qu'on peut mettre direct dans les autres fonctions, non ?
     return;
   }
 
   if (card.name === "SECOND_CHANCE") {
     await handleSecondChanceDraw(sourcePlayer, allPlayers, deck, logger, meta, rl);
     logger.log("SECOND_CHANCE_REPLACEMENT_DRAW", { ...meta, player: sourcePlayer.name });
-    await drawAndResolveForPlayer(sourcePlayer, allPlayers, deck, roundCtx, rl, logger, meta);
+    await drawAndResolveForPlayer(sourcePlayer, allPlayers, deck, roundCtx, rl, logger, meta); //pioche à nouveau
     return;
   }
 
@@ -172,7 +168,7 @@ async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, 
   for (let i = 1; i <= 3; i++) {
     if (roundCtx.ended) break;
 
-    const card = drawCard(deck, logger, meta);
+    const card = drawCard(deck, logger, meta); //pioche
     roundCtx.tableCards.push(card); 
 
     logger.log("FLIP_THREE_DRAW", { ...meta, target: target.name, index: i, card: { ...card } });
@@ -242,40 +238,6 @@ function showTable(players) {
   }
   console.log("-------------\n");
 }
-/*
-async function initialDeal(players, deck, roundCtx, rl, logger, meta) { // possibilité de l'enlever et de 
-  // Interruption si Action: on résout immédiatement, puis on reprend.
-  const dealt = new Set();
-
-  while (dealt.size < players.length) {
-    for (const p of players) {
-      if (dealt.size >= players.length) break;
-      if (dealt.has(p.id)) continue;
-
-      const card = drawCard(deck, logger, meta);
-      roundCtx.tableCards.push(card);
-
-      logger.log("DEAL", { ...meta, to: p.name, card: { ...card } });
-      console.log(`Distribution à ${p.name}: ${cardToString(card)}`);
-
-      if (card.type === "ACTION") {
-        logger.log("DEAL_ACTION_INTERRUPT", { ...meta, to: p.name, card: cardToString(card) });
-        await resolveActionCard(card, p, players, deck, roundCtx, rl, logger, meta);
-        dealt.add(p.id);
-      } else if (card.type === "NUMBER") {
-        applyNumberCard(p, card.value, deck, logger, meta);
-        checkFlip7AndMaybeEndRound(p, roundCtx, logger, meta);
-        dealt.add(p.id);
-      } else {
-        applyModifierCard(p, card, logger, meta);
-        dealt.add(p.id);
-      }
-
-      if (!p.round.active) dealt.add(p.id);
-      if (roundCtx.ended) return;
-    }
-  }
-}*/
 
 async function roundLoop(players, deck, roundCtx, rl, logger, meta) {
   firstDeal = true;
