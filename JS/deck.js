@@ -7,7 +7,6 @@ function shuffle(arr) {
   return arr;
 }
 
-// Nombres: 12x12, 11x11, ... 1x1, + un 0
 function buildDeck(config) {
   const cards = [];
 
@@ -25,17 +24,11 @@ function buildDeck(config) {
   }
 
   // Modificateurs
-  const map = {
-    PLUS_2: { type: "MODIFIER", kind: "PLUS", value: 2 },
-    PLUS_4: { type: "MODIFIER", kind: "PLUS", value: 4 },
-    PLUS_6: { type: "MODIFIER", kind: "PLUS", value: 6 },
-    PLUS_8: { type: "MODIFIER", kind: "PLUS", value: 8 },
-    PLUS_10: { type: "MODIFIER", kind: "PLUS", value: 10 },
-    X2: { type: "MODIFIER", kind: "X2", value: 2 },
-  };
-
-  for (const [key, count] of Object.entries(config.modifiers || {})) {
-    for (let i = 0; i < count; i++) cards.push({ ...map[key] });
+  for (const [k, n] of Object.entries(config.modifiers || {})){
+    for (let i = 0; i < n; i++){
+      cards.push({type: "MODIFIER", kind: k.startsWith("PLUS_") ? "PLUS" : "X2",
+                  value: +(k.startsWith("PLUS_") ? k.slice(5):k.slice(1))});
+    }
   }
 
   return shuffle(cards);
@@ -44,7 +37,7 @@ function buildDeck(config) {
 function createDeckRuntime(config) {
   return {
     draw: buildDeck(config),
-    discard: [],
+    discard: [], //la défausse
   };
 }
 
@@ -61,9 +54,8 @@ function reshuffleIfNeeded(deck, logger, meta) {
   deck.discard = [];
 
   logger.log("RESHUFFLE", { ...meta, newDrawSize: deck.draw.length });
-  console.log("→ Défausse utilisée et pioche mélangée");
+  console.log("-> Défausse utilisée et pioche mélangée");
 }
-
 
 function drawCard(deck, logger, meta) {
   reshuffleIfNeeded(deck, logger, meta);
@@ -72,7 +64,7 @@ function drawCard(deck, logger, meta) {
 
 function cardToString(card) {
   if (card.type === "NUMBER") return `${card.value}`;
-  if (card.type === "ACTION") return card.name === "FLIP_THREE" ? "FLIP THREE" : card.name;
+  if (card.type === "ACTION") return card.name.split("_").join(" "); //enlever les _
   if (card.type === "MODIFIER") return card.kind === "X2" ? "x2" : `+${card.value}`;
   return "UNKNOWN";
 }
