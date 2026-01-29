@@ -1,15 +1,14 @@
-// engine.js
 const { drawCard, discardCard, cardToString } = require("./deck");
 
 const TARGET_SCORE = 200;
 const FLIP7_BONUS = 15;
 
-function makeId(prefix = "id") {//id pour quoi ? besoin que ce soit aussi compliqué ?
+function makeId(prefix = "id") { // besoin que ce soit aussi compliqué ? Il y a déjà cette fonction dans game.js
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
 }
 
 function makePlayer(name) { // pourquoi besoin d'un id ? pour identifier de façon unique un joueur (pas juste avec le nom)
-  return { id: makeId("p"), name, total: 0, round: null };
+  return { id: makeId("p"), name, total: 0, round: null }; //
 }
 
 function initRoundState(player) {//état d'un joueur
@@ -239,7 +238,7 @@ function showTable(players) {
   console.log("-------------\n");
 }
 
-async function roundLoop(players, deck, roundCtx, rl, logger, meta) {
+async function roundLoop(players, deck, roundCtx, rl, logger, meta, dealerIndex) {
   firstDeal = true;
   while (!roundCtx.ended) {
     const active = players.filter((p) => p.round.active && !p.round.stood);
@@ -249,7 +248,10 @@ async function roundLoop(players, deck, roundCtx, rl, logger, meta) {
       break;
     }
 
-    for (const p of players) {
+    for (let k = 0; k < players.length; k++) {
+      const i = (dealerIndex + 1 + k) % players.length; //le dealer donne à sa gauche
+      const p = players[i];
+
       if (roundCtx.ended) break;
       if (!p.round.active || p.round.stood) continue;
       
@@ -291,7 +293,7 @@ function discardEndOfRoundSecondChance(players, deck, logger, meta) {
   }
 }
 
-async function playRound(players, deck, dealerIndex, rl, logger, gameId, roundNo) {
+async function playRound(players, deck, dealerIndex, rl, logger, roundNo) { //gameId, 
   players.forEach(initRoundState);
 
   const roundCtx = {
@@ -302,15 +304,14 @@ async function playRound(players, deck, dealerIndex, rl, logger, gameId, roundNo
   tableCards: [], // toutes les cartes révélées pendant ce tour
     };
 
-  const meta = { gameId, round: roundNo };
+  const meta = { round: roundNo }; //gameId, 
 
   const dealer = players[dealerIndex];
   logger.log("ROUND_START", { ...meta, dealer: dealer.name });
 
   console.log(`\n====================\nTOUR #${roundNo} (donneur: ${dealer.name})\n====================\n`);
 
-  //await initialDeal(players, deck, roundCtx, rl, logger, meta); // à enlever ?
-  if (!roundCtx.ended) await roundLoop(players, deck, roundCtx, rl, logger, meta);
+  if (!roundCtx.ended) await roundLoop(players, deck, roundCtx, rl, logger, meta, dealerIndex);
 
   discardEndOfRoundSecondChance(players, deck, logger, meta);
 

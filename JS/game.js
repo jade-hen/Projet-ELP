@@ -1,4 +1,3 @@
-// game.js
 const { createInterface } = require("readline/promises");
 const { stdin: input, stdout: output } = require("process");
 
@@ -6,30 +5,30 @@ const { createLogger } = require("./logger");
 const { createDeckRuntime } = require("./deck");
 const { makePlayer, playRound, isGameOver, getWinner } = require("./engine");
 
-// Ajuste ici les quantités de cartes spéciales si tu veux coller exactement à ton deck physique
 const DECK_CONFIG = {
   actions: { FREEZE: 3, FLIP_THREE: 3, SECOND_CHANCE: 3 },
   modifiers: { PLUS_2: 1, PLUS_4: 1, PLUS_6: 1, PLUS_8: 1, PLUS_10: 1, X2: 1 },
 };
 
-function makeId(prefix = "id") {
+/* function makeId(prefix = "id") {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
-}
+} */
 
 function isNo(s) {
   return ["n", "no", "non"].includes(String(s).trim().toLowerCase());
 }
 
 async function main() {
-  const rl = createInterface({ input, output });
+  const rl = createInterface({ input, output }); // rl = readline
 
-  const gameId = makeId("game");
+  //const gameId = makeId("game");
   const logger = createLogger({});
-  logger.log("GAME_START", { gameId });
+  logger.log("GAME_START"); //, { gameId }
 
-  console.log("Flip7 (mode texte) - règles complètes");
+  console.log("Flip7");
   console.log(`Log: ${logger.filepath}\n`);
 
+  //Nombre de joueurs
   let n;
   while (true) {
     const ans = await rl.question("Nombre de joueurs (2+): ");
@@ -38,34 +37,32 @@ async function main() {
     console.log("Entrée invalide.");
   }
 
+  //Noms des joueurs
   const players = [];
   for (let i = 0; i < n; i++) {
     const name = (await rl.question(`Nom joueur ${i + 1}: `)).trim() || `J${i + 1}`;
     players.push(makePlayer(name));
   }
-  logger.log("PLAYERS", { gameId, players: players.map((p) => p.name) });
+  logger.log("PLAYERS", { players: players.map((p) => p.name) });//gameId, 
 
   const deck = createDeckRuntime(DECK_CONFIG);
 
   let dealerIndex = 0;
   let roundNo = 1;
-
   while (true) {
-    await playRound(players, deck, dealerIndex, rl, logger, gameId, roundNo);
+    await playRound(players, deck, dealerIndex, rl, logger, roundNo); //gameId, 
 
     if (isGameOver(players)) break;
 
     dealerIndex = (dealerIndex + 1) % players.length;
     roundNo++;
 
-    const cont = await rl.question("Continuer ? (o/n) ");
+    const cont = await rl.question("Continuer ? (o/n) ");//finir plus tôt
     if (isNo(cont)) break;
   }
 
   const winner = getWinner(players);
-  logger.log("GAME_END", {
-    gameId,
-    winner: winner.name,
+  logger.log("GAME_END", {winner: winner.name, //gameId, 
     totals: Object.fromEntries(players.map((p) => [p.name, p.total])),
   });
 
