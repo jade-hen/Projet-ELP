@@ -10,10 +10,6 @@ const DECK_CONFIG = {
   modifiers: { PLUS_2: 1, PLUS_4: 1, PLUS_6: 1, PLUS_8: 1, PLUS_10: 1, X2: 1 },
 };
 
-/* function makeId(prefix = "id") {
-  return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
-} */
-
 function isNo(s) {
   return ["n", "no", "non"].includes(String(s).trim().toLowerCase());
 }

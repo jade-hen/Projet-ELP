@@ -1,5 +1,28 @@
 const { drawCard, discardCard, cardToString } = require("./deck");
 
+const C = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
+  gray: "\x1b[90m",
+};
+
+const paint = (c, s) => `${c}${s}${C.reset}`;
+const R = (s) => paint(C.red, s);
+const G = (s) => paint(C.green, s);
+const Y = (s) => paint(C.yellow, s);
+const B = (s) => paint(C.blue, s);
+const M = (s) => paint(C.magenta, s);
+const CYA = (s) => paint(C.cyan, s);
+const GR = (s) => paint(C.gray, s);
+const BO = (s) => paint(C.bold, s);
+
 const TARGET_SCORE = 200;
 const FLIP7_BONUS = 15;
 
@@ -49,6 +72,7 @@ function checkFlip7AndMaybeEndRound(player, roundCtx, logger, meta) {
     roundCtx.ended = true;
     roundCtx.endReason = "FLIP7";
     roundCtx.flip7By = player.name;
+    console.log(G(`FLIP7 ! ${player.name}`));
     logger.log("FLIP7", { ...meta, player: player.name, bonus: FLIP7_BONUS });
   }
 }
@@ -67,17 +91,16 @@ function applyModifierCard(player, card, logger, meta) {
 function applyNumberCard(player, value, deck, logger, meta) {
   const r = player.round;
 
-  if (r.numbers.includes(value)) {//si le joueur a déjà la carte
+  if (r.numbers.includes(value)) {
     if (r.hasSecondChance) {
-        r.hasSecondChance = false;
-        logger.log("SECOND_CHANCE_USED", { ...meta, player: player.name, duplicateValue: value });
-        return { ok: true, duplicate: true, usedSecondChance: true };
+      r.hasSecondChance = false;
+      logger.log("SECOND_CHANCE_USED", { ...meta, player: player.name, duplicateValue: value });
+      return { ok: true, duplicate: true, usedSecondChance: true };
     }
-    //pas de seconde chance, joueur éliminé
     r.active = false;
     r.bustedByDuplicate = true;
     logger.log("BUST_DUPLICATE", { ...meta, player: player.name, value });
-    console.log("Carte en double !", player.name, "out !")
+    console.log(R(`Carte en double ! ${player.name} out !`));
     return { ok: false, duplicate: true, usedSecondChance: false };
   }
 
@@ -96,18 +119,17 @@ function freezePlayer(target, logger, meta) {
 }
 
 
-async function chooseTarget(activePlayers, currentPlayer, rl) {//choisir une cible pour appliquer la carte 
+async function chooseTarget(activePlayers, currentPlayer, rl) {
   if (activePlayers.length === 1) return activePlayers[0];
 
   while (true) {
-    console.log("\nChoisis une cible :");
+    console.log(CYA("\nChoisis une cible :"));
     activePlayers.forEach((p, idx) => {
-      console.log(`  ${idx + 1}) ${p.name}${p.id === currentPlayer.id ? " (toi)" : ""}`);
-    });
+    console.log(GR(`  ${idx + 1}) ${p.name}${p.id === currentPlayer.id ? " (toi)" : ""}`));    });
     const ans = await rl.question("> numéro: ");
     const n = Number(ans);
     if (Number.isInteger(n) && n >= 1 && n <= activePlayers.length) return activePlayers[n - 1];
-    console.log("Entrée invalide.");
+    console.log(R("Entrée invalide."));
   }
 }
 
@@ -120,7 +142,7 @@ async function handleSecondChanceDraw(receiver, allPlayers, deck, logger, meta, 
   }
 
   const active = allPlayers.filter((p) => p.round.active && !p.round.stood);
-  const eligible = active.filter((p) => !p.round.hasSecondChance);//tous ceux qui n'ont pas de seconde chance
+  const eligible = active.filter((p) => !p.round.hasSecondChance);
 
   if (eligible.length === 0) {
     discardCard(deck, { type: "ACTION", name: "SECOND_CHANCE", virtual: false });
@@ -128,7 +150,7 @@ async function handleSecondChanceDraw(receiver, allPlayers, deck, logger, meta, 
     return;
   }
 
-  console.log(`\n${receiver.name} a déjà une Second Chance. Il/elle doit la donner.`);
+  console.log(Y(`\n${receiver.name} a déjà une Second Chance. Il/elle doit la donner.`));
   const target = await chooseTarget(eligible, receiver, rl);
   target.round.hasSecondChance = true;
   logger.log("SECOND_CHANCE_GIVEN", { ...meta, from: receiver.name, to: target.name });
@@ -162,7 +184,7 @@ async function resolveActionCard(card, sourcePlayer, allPlayers, deck, roundCtx,
 }
 
 async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, meta) {
-  console.log(`\n>>> FLIP THREE sur ${target.name}: il/elle doit piocher 3 cartes.`);
+  console.log(CYA(`\n>>> FLIP THREE sur ${target.name}: il/elle doit piocher 3 cartes.`));
   const pendingActions = [];
 
   for (let i = 1; i <= 3; i++) {
@@ -172,14 +194,14 @@ async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, 
     roundCtx.tableCards.push(card); 
 
     logger.log("FLIP_THREE_DRAW", { ...meta, target: target.name, index: i, card: { ...card } });
-    console.log(`${target.name} (FlipThree) pioche ${i}/3: ${cardToString(card)}`);
+    console.log(`${target.name} (FlipThree) pioche ${i}/3: ${B(cardToString(card))}`);
 
     if (card.type === "NUMBER") {
       if (target.round.active) {
         const res = applyNumberCard(target, card.value, deck, logger, meta);
         if (res.ok) checkFlip7AndMaybeEndRound(target, roundCtx, logger, meta);
       } else {
-        console.log(target.name, "est out, mais doit finir son FlipThree")
+        console.log(gray(target.name + " est out, mais doit finir son FlipThree"));
         logger.log("IGNORED_CARD_TARGET_ALREADY_OUT", { ...meta, target: target.name, card }); //même si le joueur est éliminé, il doit continuer de piocher ses 3 cartes
       }
       continue;
@@ -198,7 +220,7 @@ async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, 
 
   for (const actionCard of pendingActions) {
     if (roundCtx.ended) break;
-    console.log(`\n>>> Résolution différée (FlipThree) pour ${target.name}: ${cardToString(actionCard)}`);
+    console.log(cyan(`\n>>> Résolution différée (FlipThree) pour ${target.name}: ${cardToString(actionCard)}`));
     await resolveActionCard(actionCard, target, allPlayers, deck, roundCtx, rl, logger, meta, { duringFlipThree: true });
   }
 }
@@ -208,7 +230,7 @@ async function drawAndResolveForPlayer(player, allPlayers, deck, roundCtx, rl, l
   roundCtx.tableCards.push(card); // on garde la carte sur la table pour la défausse de fin de tour
 
   logger.log("DRAW", { ...meta, player: player.name, card: { ...card } });
-  console.log(`${player.name} pioche: ${cardToString(card)}`);
+  console.log(B(`${player.name} pioche: ${cardToString(card)}`));
 
   if (card.type === "NUMBER") {
     const res = applyNumberCard(player, card.value, deck, logger, meta);
@@ -225,7 +247,7 @@ async function drawAndResolveForPlayer(player, allPlayers, deck, roundCtx, rl, l
 }
 
 function showTable(players) {
-  console.log("\n--- TABLE ---");
+  console.log(BO(CYA("\n--------------- TABLE ---------------")));
   for (const p of players) {
     const r = p.round;
     const nums = r.numbers.length ? r.numbers.join(",") : "-";
@@ -234,10 +256,15 @@ function showTable(players) {
     if (r.hasX2) mods.push("x2");
     if (r.modifiersPlus) mods.push(`+${r.modifiersPlus}`);
     if (r.hasSecondChance) mods.push("SecondChance");
-    const status = !r.active ? "OUT" : r.stood ? "STAND" : "ACTIVE";
-    console.log(`${p.name} [${status}] nums(${uniq} uniques): ${nums} | mods: ${mods.length ? mods.join(" | ") : "-"}`);
-  }
-  console.log("-------------\n");
+    const status = !r.active
+      ? R("OUT")
+      : r.stood
+      ? Y("STAND")
+      : G("ACTIVE");    
+      
+    console.log(GR(`${p.name} [${status}] nums(${uniq} uniques): ${nums} | mods: ${mods.join(" | ") || "-"}`));  
+    }
+  console.log(BO(CYA("-------------------------------------\n")));
 }
 
 async function roundLoop(players, deck, roundCtx, rl, logger, meta, dealerIndex) {
@@ -259,8 +286,10 @@ async function roundLoop(players, deck, roundCtx, rl, logger, meta, dealerIndex)
       
       if (!firstDeal){ // si ce n'est pas le premier tour, on laisse le choix au joueur de rester ou pas
         showTable(players);
-        console.log(`${p.name}, total: ${p.total}. Potentiel tour: ${computeRoundScore(p)}`);
-        console.log("Choix: (h)it = recevoir une carte, (s)tand = rester");
+        console.log(
+          CYA(`${p.name}, total: ${p.total}. Potentiel tour: ${computeRoundScore(p)}`)
+        );
+        console.log(M("Choix: (h)it = recevoir une carte, (s)tand = rester"));
       }
       while (true) {
         let ans = "";
@@ -279,7 +308,7 @@ async function roundLoop(players, deck, roundCtx, rl, logger, meta, dealerIndex)
           logger.log("CHOICE", { ...meta, player: p.name, choice: "STAND" });
           break;
         }
-        console.log("Entrée invalide. Tape h ou s.");
+        console.log(R("Entrée invalide. Tape h ou s."));
       }
     }
     firstDeal = false;
@@ -311,7 +340,9 @@ async function playRound(players, deck, dealerIndex, rl, logger, roundNo) {
   const dealer = players[dealerIndex];
   logger.log("ROUND_START", { ...meta, dealer: dealer.name });
 
-  console.log(`\n====================\nTOUR #${roundNo} (donneur: ${dealer.name})\n====================\n`);
+  console.log(BO(CYA(`\n====================`)));
+  console.log(BO(CYA(`TOUR #${roundNo}`)));
+  console.log(BO(CYA(`====================\n`)));
 
   if (!roundCtx.ended) await roundLoop(players, deck, roundCtx, rl, logger, meta, dealerIndex);
 
@@ -338,10 +369,10 @@ async function playRound(players, deck, dealerIndex, rl, logger, roundNo) {
     totals: Object.fromEntries(players.map((p) => [p.name, p.total])),
   });
 
-  console.log("\n--- FIN DE TOUR ---");
-  console.log(`Raison: ${roundCtx.endReason}${roundCtx.flip7By ? ` (Flip7 par ${roundCtx.flip7By})` : ""}`);
-  for (const p of players) console.log(`${p.name}: +${roundScores[p.name]} => total ${p.total}`);
-  console.log("-------------------\n");
+  console.log(BO(CYA("\n--- FIN DE TOUR ---")));
+  console.log(GR(`Raison: ${roundCtx.endReason}${roundCtx.flip7By ? ` (Flip7 par ${roundCtx.flip7By})` : ""}`));
+  for (const p of players) console.log(G(`${p.name}: +${roundScores[p.name]} => total ${p.total}`));
+  console.log(BO(CYA("-------------------\n")));
 
   return { roundCtx, roundScores };
 }
