@@ -43,9 +43,15 @@ async function main() {
     const name = (await rl.question(`Nom joueur ${i + 1}: `)).trim() || `J${i + 1}`;
     players.push(makePlayer(name));
   }
-  logger.log("PLAYERS", { players: players.map((p) => p.name) });//gameId, 
+  logger.log("PLAYERS", { players: players.map((p) => p.name) }); 
 
-  const deck = createDeckRuntime(DECK_CONFIG); // rajouter le nombre de joueur pour savoir avec combien de paquets de cartes il faut jouer (+ ajouter un print pour montrer que ça marche bien)
+  nbPaquets = Math.floor(n/(18))+(n%18!=0)
+  if (n>18) {
+    console.log("\nIl y a plus de 18 joueurs => Nécessité de rajouter", nbPaquets-1, nbPaquets-1>1 ? "paquets":"paquet");
+  }
+  logger.log("CREATE_DECK", { decksNumber: nbPaquets })
+
+  const deck = createDeckRuntime(DECK_CONFIG, n); // rajouter le nombre de joueur pour savoir avec combien de paquets de cartes il faut jouer (+ ajouter un print pour montrer que ça marche bien)
 
   let dealerIndex = 0;
   let roundNo = 1;

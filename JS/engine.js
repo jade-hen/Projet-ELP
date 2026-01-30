@@ -57,7 +57,7 @@ function applyModifierCard(player, card, logger, meta) {
   const r = player.round;
   if (card.kind === "X2") {
     r.hasX2 = true;
-    logger.log("ADD_X2", { ...meta, player: player.name }); //utile ?
+    logger.log("ADD_X2", { ...meta, player: player.name }); 
   } else {
     r.modifiersPlus += card.value;
     logger.log("ADD_PLUS", { ...meta, player: player.name, plus: card.value, totalPlus: r.modifiersPlus }); //utile ?
@@ -77,6 +77,7 @@ function applyNumberCard(player, value, deck, logger, meta) {
     r.active = false;
     r.bustedByDuplicate = true;
     logger.log("BUST_DUPLICATE", { ...meta, player: player.name, value });
+    console.log("Carte en double !", player.name, "out !")
     return { ok: false, duplicate: true, usedSecondChance: false };
   }
 
@@ -178,7 +179,8 @@ async function performFlipThree(target, allPlayers, deck, roundCtx, rl, logger, 
         const res = applyNumberCard(target, card.value, deck, logger, meta);
         if (res.ok) checkFlip7AndMaybeEndRound(target, roundCtx, logger, meta);
       } else {
-        logger.log("IGNORED_CARD_TARGET_ALREADY_OUT", { ...meta, target: target.name, card });
+        console.log(target.name, "est out, mais doit finir son FlipThree")
+        logger.log("IGNORED_CARD_TARGET_ALREADY_OUT", { ...meta, target: target.name, card }); //même si le joueur est éliminé, il doit continuer de piocher ses 3 cartes
       }
       continue;
     }

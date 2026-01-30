@@ -45,4 +45,4 @@ JS/
 | engine.js | Moteur de jeu (logique principale) |
 | deck.js   | Gestion du paquet / cartes |
 | logger.js | Gestion des logs |
-| logs/     | Répertoire contenant les fichiers de logs générés |
+| logs/     | Répertoire contenant les fichiers de logs générés (heures UTC) |

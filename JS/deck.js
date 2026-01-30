@@ -6,37 +6,37 @@ function shuffle(arr) {
   return arr;
 }
 
-function buildDeck(config) { //nbPlayers
+function buildDeck(config, nbPlayers) { //nbPlayers
   const cards = [];
 
-  // for i in range(nbPlayers//18+1) // pour ajouter un paquet si besoin avec // le résultat de la division euclidienne
-  // 0
-  cards.push({ type: "NUMBER", value: 0 });
+  for (let i = 0; i <= (Math.floor(nbPlayers/(18))+(nbPlayers%18!=0)); i++) {// pour ajouter un paquet si besoin avec // le résultat de la division euclidienne
+    // 0
+    cards.push({ type: "NUMBER", value: 0 });
 
-  // 1..12 : v exemplaires de v
-  for (let v = 1; v <= 12; v++) {
-    for (let k = 0; k < v; k++) cards.push({ type: "NUMBER", value: v });
-  }
+    // 1..12 : v exemplaires de v
+    for (let v = 1; v <= 12; v++) {
+      for (let k = 0; k < v; k++) cards.push({ type: "NUMBER", value: v });
+    }
 
-  // Actions
-  for (const [name, count] of Object.entries(config.actions || {})) {
-    for (let i = 0; i < count; i++) cards.push({ type: "ACTION", name });
-  }
+    // Actions
+    for (const [name, count] of Object.entries(config.actions || {})) {
+      for (let i = 0; i < count; i++) cards.push({ type: "ACTION", name });
+    }
 
-  // Modificateurs
-  for (const [k, n] of Object.entries(config.modifiers || {})){
-    for (let i = 0; i < n; i++){
-      cards.push({type: "MODIFIER", kind: k.startsWith("PLUS_") ? "PLUS" : "X2",
-                  value: +(k.startsWith("PLUS_") ? k.slice(5):k.slice(1))});
+    // Modificateurs
+    for (const [k, n] of Object.entries(config.modifiers || {})){
+      for (let i = 0; i < n; i++){
+        cards.push({type: "MODIFIER", kind: k.startsWith("PLUS_") ? "PLUS" : "X2",
+                    value: +(k.startsWith("PLUS_") ? k.slice(5):k.slice(1))});
+      }
     }
   }
-
   return shuffle(cards);
 }
 
-function createDeckRuntime(config) {
+function createDeckRuntime(config, nbPlayers) {
   return {
-    draw: buildDeck(config),
+    draw: buildDeck(config, nbPlayers),
     discard: [], //la défausse
   };
 }
